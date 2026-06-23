@@ -4,10 +4,13 @@
 Scout Cipher GUI - NiceGUI-baserat gränssnitt för scout-chiffer
 """
 
+import json
+
 from nicegui import ui
 from scout_cipher import (
     scout_scout_cipher,
     bradgards_svg_cipher,
+    bradgards_svg_grid,
     morse_cipher,
     alphanumeric_cipher,
     ascii_cipher,
@@ -209,6 +212,7 @@ def main_page():
     def process_text():
         """Process input text with selected cipher"""
         input_text = ui_refs.get('input')
+        input_html = ui_refs.get('input_html')
         output_text = ui_refs.get('output')
         output_html = ui_refs.get('output_html')
         if not input_text:
@@ -221,11 +225,40 @@ def main_page():
 
         # Brädgård decode is interactive via clickable symbol grids
         if selected_cipher['value'] == 'bradgards' and not is_encoding['value']:
+            decode_preview = bradgards_svg_grid(
+                bradgards_decoded['value'],
+                chars_per_row=get_chars_per_row(),
+                cell_size=36,
+            )
+            if input_html:
+                input_html.set_visibility(True)
+                input_html.set_content(decode_preview)
             if output_html:
                 output_html.set_visibility(False)
             if output_text:
                 output_text.set_visibility(True)
                 output_text.value = bradgards_decoded['value']
+            return
+
+        # Brädgård encode preview should match export layout (same chars per row)
+        if selected_cipher['value'] == 'bradgards' and is_encoding['value']:
+            if not text.strip():
+                if output_text:
+                    output_text.value = ''
+                if output_html:
+                    output_html.set_content('')
+                return
+
+            svg_grid = bradgards_svg_grid(
+                text,
+                chars_per_row=get_chars_per_row(),
+                cell_size=36,
+            )
+            if output_text:
+                output_text.set_visibility(False)
+            if output_html:
+                output_html.set_visibility(True)
+                output_html.set_content(svg_grid)
             return
         
         if not text.strip():
@@ -290,8 +323,50 @@ def main_page():
         if ref_desc:
             ref_desc.content = cipher_config.get('full_description', '')
         if ref_content:
-            ref_content.content = cipher_config.get('reference', '')
+            if selected_cipher['value'] == 'bradgards':
+                ref_content.content = build_bradgards_reference_html()
+            else:
+                ref_content.content = cipher_config.get('reference', '')
         process_text()
+
+    def build_bradgards_reference_html():
+        """Build Brädgård reference table using the same SVG symbols as decode input."""
+        grids = [
+            ('Grid 1 (ingen prick)', [['A', 'B', 'C'], ['D', 'E', 'F'], ['G', 'H', 'I']]),
+            ('Grid 2 (en prick)', [['J', 'K', 'L'], ['M', 'N', 'O'], ['P', 'R', 'S']]),
+            ('Grid 3 (två prickar)', [['T', 'U', 'V'], ['X', 'Y', 'Z'], ['Å', 'Ä', 'Ö']]),
+        ]
+
+        blocks = []
+        for title, rows in grids:
+            cells = []
+            for row in rows:
+                row_cells = []
+                for letter in row:
+                    row_cells.append(
+                        '<td style="padding:8px;text-align:center;vertical-align:top;">'
+                        f'{bradgards_svg_cipher(letter, encode=True, size=28)}'
+                        f'<div style="font-size:11px;color:var(--rp-muted);margin-top:4px;">{letter}</div>'
+                        '</td>'
+                    )
+                cells.append(f"<tr>{''.join(row_cells)}</tr>")
+
+            blocks.append(
+                '<div style="display:inline-block;vertical-align:top;margin:8px 12px 8px 0;">'
+                f'<div style="font-weight:700;color:var(--rp-iris);margin-bottom:6px;">{title}</div>'
+                '<table style="border-collapse:separate;border-spacing:4px;">'
+                f"{''.join(cells)}"
+                '</table></div>'
+            )
+
+        return (
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">'
+            f"{''.join(blocks)}"
+            '</div>'
+            '<div style="margin-top:8px;color:var(--rp-muted);font-size:12px;">'
+            'Samma symboler används i avkodningsinmatningen. Q och W ingår inte.'
+            '</div>'
+        )
     
     def update_shift(value):
         """Update Caesar shift value"""
@@ -338,38 +413,120 @@ def main_page():
     def append_bradgards_letter(letter):
         """Append a decoded letter in interactive Brädgård mode"""
         bradgards_decoded['value'] += letter
-        out = ui_refs.get('output')
-        if out:
-            out.value = bradgards_decoded['value']
+        process_text()
 
     def bradgards_backspace():
         """Delete one character in interactive Brädgård mode"""
         bradgards_decoded['value'] = bradgards_decoded['value'][:-1]
-        out = ui_refs.get('output')
-        if out:
-            out.value = bradgards_decoded['value']
+        process_text()
 
     def bradgards_clear():
         """Clear decoded text in interactive Brädgård mode"""
         bradgards_decoded['value'] = ''
-        out = ui_refs.get('output')
-        if out:
-            out.value = ''
+        process_text()
+
+    def get_chars_per_row():
+        value = ui_refs.get('chars_per_row')
+        if value and value.value:
+            try:
+                return max(1, int(value.value))
+            except (ValueError, TypeError):
+                return 12
+        return 12
+
+    def download_bradgards_svg():
+        """Download encoded Brädgård as SVG"""
+        inp = ui_refs.get('input')
+        if not inp or not (inp.value or '').strip():
+            ui.notify('Skriv text att koda först.', type='warning')
+            return
+
+        svg_content = bradgards_svg_grid(
+            inp.value,
+            chars_per_row=get_chars_per_row(),
+            cell_size=36,
+        )
+        svg_js = json.dumps(svg_content)
+        ui.run_javascript(f'''
+            const svgContent = {svg_js};
+            const blob = new Blob([svgContent], {{ type: 'image/svg+xml;charset=utf-8' }});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bradgards.svg';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        ''')
+
+    def download_bradgards_png():
+        """Download encoded Brädgård as PNG via canvas conversion"""
+        inp = ui_refs.get('input')
+        if not inp or not (inp.value or '').strip():
+            ui.notify('Skriv text att koda först.', type='warning')
+            return
+
+        svg_content = bradgards_svg_grid(
+            inp.value,
+            chars_per_row=get_chars_per_row(),
+            cell_size=36,
+        )
+        svg_js = json.dumps(svg_content)
+        ui.run_javascript(f'''
+            (async () => {{
+                const svgContent = {svg_js};
+                const blob = new Blob([svgContent], {{ type: 'image/svg+xml;charset=utf-8' }});
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => {{
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(url);
+                    canvas.toBlob((pngBlob) => {{
+                        if (!pngBlob) return;
+                        const pngUrl = URL.createObjectURL(pngBlob);
+                        const a = document.createElement('a');
+                        a.href = pngUrl;
+                        a.download = 'bradgards.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(pngUrl);
+                    }}, 'image/png');
+                }};
+                img.src = url;
+            }})();
+        ''')
 
     def update_mode_ui():
         """Show/hide controls for special interactive decode modes"""
         is_bradgards_decode = selected_cipher['value'] == 'bradgards' and not is_encoding['value']
+        is_bradgards_encode = selected_cipher['value'] == 'bradgards' and is_encoding['value']
 
         input_column = ui_refs.get('input_column')
+        input_textarea = ui_refs.get('input')
+        input_html = ui_refs.get('input_html')
         swap_column = ui_refs.get('swap_column')
         decode_panel = ui_refs.get('bradgards_decode_panel')
+        export_panel = ui_refs.get('bradgards_export_panel')
 
         if input_column:
-            input_column.set_visibility(not is_bradgards_decode)
+            input_column.set_visibility(True)
+        if input_textarea:
+            input_textarea.set_visibility(not is_bradgards_decode)
+        if input_html:
+            input_html.set_visibility(is_bradgards_decode)
         if swap_column:
-            swap_column.set_visibility(not is_bradgards_decode)
+            swap_column.set_visibility(True)
         if decode_panel:
             decode_panel.set_visibility(is_bradgards_decode)
+        if export_panel:
+            export_panel.set_visibility(is_bradgards_encode)
     
     def set_theme(is_dark: bool):
         """Set light/dark mode explicitly"""
@@ -678,6 +835,11 @@ def main_page():
                         on_change=lambda e: process_text()
                     ).classes('w-full font-mono').props('outlined rows=8')
                     ui_refs['input'] = input_area
+                    input_html = ui.html('').classes('w-full p-4 rounded border min-h-32').style(
+                        'background-color: var(--rp-surface); border-color: var(--rp-highlight-med); min-height: 180px;'
+                    )
+                    input_html.set_visibility(False)
+                    ui_refs['input_html'] = input_html
                 
                 # Middle button
                 with ui.column().classes('justify-center') as swap_column:
@@ -726,6 +888,24 @@ def main_page():
                     ui.button('Mellanslag', on_click=lambda: append_bradgards_letter(' ')).props('outline color=primary')
                     ui.button('⌫ Backa', on_click=bradgards_backspace).props('outline color=primary')
                     ui.button('Rensa', on_click=bradgards_clear).props('outline color=grey')
+
+            # Brädgård export panel (visible in Brädgård + Koda)
+            with ui.column().classes('w-full mt-4 gap-2') as bradgards_export_panel:
+                ui_refs['bradgards_export_panel'] = bradgards_export_panel
+                bradgards_export_panel.set_visibility(False)
+
+                ui.label('Exportera kodad Brädgård som bild').classes('text-md font-semibold rp-text')
+                with ui.row().classes('items-center gap-3 flex-wrap'):
+                    ui.label('Tecken per rad:').classes('rp-text')
+                    chars_per_row = ui.number(
+                        value=12,
+                        min=1,
+                        step=1,
+                        on_change=lambda e: process_text(),
+                    ).classes('w-28').props('outlined dense')
+                    ui_refs['chars_per_row'] = chars_per_row
+                    ui.button('Ladda ner SVG', on_click=download_bradgards_svg).props('outline color=primary')
+                    ui.button('Ladda ner PNG', on_click=download_bradgards_png).props('outline color=primary')
         
         # Action buttons
         with ui.row().classes('gap-4 mt-4'):

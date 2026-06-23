@@ -5,6 +5,8 @@ Scout Cipher Implementation for Swedish Scouting
 Includes SCOUT-scout cipher and Brädgårdschiffer (grid cipher)
 """
 
+import math
+
 def scout_scout_cipher(text, encode=True):
     """
     SCOUT-scout cipher implementation
@@ -377,6 +379,64 @@ def bradgards_svg_export(text, filename="bradgards.html", size=32):
         f.write(html)
     
     return filename
+
+
+def bradgards_svg_grid(text, chars_per_row=12, cell_size=36, gap=8, padding=16):
+    """
+    Render encoded Brädgård text as one standalone SVG image.
+
+    Args:
+        text (str): Text to encode
+        chars_per_row (int): Number of characters per row
+        cell_size (int): Size of each symbol cell in pixels
+        gap (int): Space between cells
+        padding (int): Outer padding around the grid
+
+    Returns:
+        str: Standalone SVG markup
+    """
+    if not text:
+        text = ' '
+
+    chars = list(text.upper())
+    cols = max(1, int(chars_per_row))
+    rows = max(1, math.ceil(len(chars) / cols))
+
+    width = padding * 2 + cols * cell_size + max(0, cols - 1) * gap
+    height = padding * 2 + rows * cell_size + max(0, rows - 1) * gap
+
+    elements = []
+
+    for i, ch in enumerate(chars):
+        row = i // cols
+        col = i % cols
+        x = padding + col * (cell_size + gap)
+        y = padding + row * (cell_size + gap)
+
+        if ch == ' ':
+            continue
+
+        rendered = bradgards_svg_cipher(ch, encode=True, size=cell_size)
+        svg_start = rendered.find('<svg')
+        svg_end = rendered.rfind('</svg>')
+
+        if svg_start != -1 and svg_end != -1:
+            single_svg = rendered[svg_start:svg_end + len('</svg>')]
+            single_svg = single_svg.replace('<svg ', f'<svg x="{x}" y="{y}" ')
+            elements.append(single_svg)
+        else:
+            # Fallback for unsupported characters
+            tx = x + cell_size // 2
+            ty = y + int(cell_size * 0.68)
+            elements.append(
+                f'<text x="{tx}" y="{ty}" font-size="{int(cell_size * 0.7)}" '
+                f'text-anchor="middle" fill="currentColor">{ch}</text>'
+            )
+
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">' + ''.join(elements) + '</svg>'
+    )
 
 
 def morse_cipher(text, encode=True):
