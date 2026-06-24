@@ -1,5 +1,8 @@
 # ChifferSkiftaren
 
+<!-- version: 0.1.0 -->
+Version: **0.1.0**
+
 Koda och avkoda meddelanden som en scout! Ett Python-baserat verktyg för klassiska scout-chiffer med stöd för det svenska alfabetet.
 
 ## Funktioner

@@ -776,6 +776,53 @@ def simple_bradgards_cipher(text, encode=True):
         return ''.join(result)
 
 
+def bacon_cipher(text, encode=True):
+    """
+    Bacon's Cipher implementation using 'a' and 'b'.
+    
+    Each letter is represented as a 5-character sequence of 'a' and 'b',
+    based on 5-bit binary representation.
+    
+    Args:
+        text (str): Text to encode/decode
+        encode (bool): True for encoding, False for decoding
+    
+    Returns:
+        str: Encoded/decoded text
+    """
+    # Bacon cipher mapping: 26 letters to 5-bit binary (as a/b)
+    bacon_map = {
+        'A': 'aaaaa', 'B': 'aaaab', 'C': 'aaaba', 'D': 'aaabb', 'E': 'aabaa',
+        'F': 'aabab', 'G': 'aabba', 'H': 'aabbb', 'I': 'abaaa', 'J': 'abaab',
+        'K': 'ababa', 'L': 'ababb', 'M': 'abbaa', 'N': 'abbab', 'O': 'abbba',
+        'P': 'abbbb', 'Q': 'baaaa', 'R': 'baaab', 'S': 'baaba', 'T': 'baabb',
+        'U': 'babaa', 'V': 'babab', 'W': 'babba', 'X': 'babbb', 'Y': 'bbaaa',
+        'Z': 'bbaab'
+    }
+    
+    if encode:
+        result = []
+        for char in text.upper():
+            if char in bacon_map:
+                result.append(bacon_map[char])
+            elif char == ' ':
+                result.append(' ')
+            else:
+                result.append(char)
+        return ' '.join(result)
+    else:
+        # Create reverse mapping for decoding
+        reverse_bacon = {v: k for k, v in bacon_map.items()}
+        parts = text.split()
+        result = []
+        for part in parts:
+            if part in reverse_bacon:
+                result.append(reverse_bacon[part])
+            else:
+                result.append(part)
+        return ''.join(result)
+
+
 def main():
     """Main function to demonstrate the ciphers"""
     print("=== SCOUT CIPHER VERKTYG ===\n")

@@ -18,8 +18,23 @@ from scout_cipher import (
     ascii_cipher,
     caesar_cipher,
     reversed_alphabet_cipher,
-    thermometer_cipher
+    thermometer_cipher,
+    bacon_cipher
 )
+
+
+def load_app_version(default='0.1.0'):
+    """Load app version from VERSION file in project root."""
+    version_path = os.path.join(os.path.dirname(__file__), 'VERSION')
+    try:
+        with open(version_path, 'r', encoding='utf-8') as f:
+            version = f.read().strip()
+            return version or default
+    except OSError:
+        return default
+
+
+APP_VERSION = load_app_version()
 
 # Cipher configurations with full descriptions and reference content
 CIPHERS = {
@@ -207,6 +222,44 @@ Svenska: Å=197/229  Ä=196/228  Ö=214/246
 Mellanslag=32  0-9=48-57
 
 Exempel: "Hi!" → "72 105 33"</pre>'''
+    },
+    'bacon': {
+        'name': 'Bacons chiffer',
+        'description': 'Bakas chiffer (a/b)',
+        'icon': 'functions',
+        'function': bacon_cipher,
+        'full_description': '''**Bacons chiffer** uppfanns av Francis Bacon på 1605 för hemlig kommunikation. Varje bokstav kodas som en sekvens av exakt 5 tecken: antingen 'a' eller 'b'. Systemet är baserat på 5-bitars binär representation (00000-11001) för alla 26 engelska bokstäver.
+
+Det klassiska chiffret användes för att dölja meddelanden genom att blanda dem med vanlig text, där bokstäverna 'A' och 'B' representerades på olika sätt (t.ex. olika typsnitt eller formatering) för att skilja dem från meddelandet.''',
+        'reference': '''<div style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+<pre>Bacons chiffer - 5-bitars mappning (a=0, b=1):
+
+A aaaaa  N abbab  U babaa
+B aaaab  O abbba  V babab
+C aaaba  P abbbb  W babba
+D aaabb  Q baaaa  X babbb
+E aabaa  R baaab  Y bbaaa
+F aabab  S baaba  Z bbaab
+G aabba  T baabb
+H aabbb  
+I abaaa
+J abaab
+K ababa
+L ababb
+M abbaa</pre>
+
+<p><strong>Klassiska döljandemetoden (formatering):</strong></p>
+<p>Meddelande: "BACON"</p>
+<p>Kodning: B=aaaab A=aaaaa C=aaaba O=abbba N=abbab</p>
+
+<p>Dölj i text med stil:</p>
+<p>The <strong>q</strong>uick brown fox jumps over <strong>the</strong> lazy dog</p>
+<p style="font-size: 12px;">
+  Th<span style="font-weight: normal;">e</span> <span style="font-weight: bold;">q</span><span style="font-weight: normal;">uick bro</span><span style="font-weight: bold;">w</span>n <span style="font-weight: normal;">fox jump</span><span style="font-weight: bold;">s</span> <span style="font-weight: normal;">ove</span><span style="font-weight: bold;">r</span> <span style="font-weight: normal;">the la</span><span style="font-weight: bold;">z</span><span style="font-weight: normal;">y do</span><span style="font-weight: bold;">g</span>
+  <br/>
+  a = normal stil | b = <strong>fet stil</strong>
+</p>
+</div>'''
     }
 }
 
@@ -1340,7 +1393,8 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         
         # Footer
         ui.separator().classes('mt-8')
-        ui.label('ChifferSkiftaren • Gjord för scouter av scouter').classes('text-gray-400 text-sm mt-2')
+        ui.label('ChifferSkiftaren - Gjord för scouter och likasinnade, av Gustaf Kylberg').classes('text-gray-400 text-sm mt-2')
+        ui.label(f'Version {APP_VERSION}').classes('text-gray-500 text-xs')
         ui.html('''
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
                 <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
