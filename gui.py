@@ -1140,7 +1140,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         with ui.row().classes('items-center gap-4 mb-6'):
             ui.label('⚜️').classes('text-5xl')
             with ui.column().classes('gap-0'):
-                ui.label('Scoutiga chifferskiftaren').classes('text-4xl font-bold rp-title')
+                ui.label('ChifferSkiftaren').classes('text-4xl font-bold rp-title')
                 ui.label('Koda och avkoda meddelanden som en scout!').classes('rp-subtitle')
         
         # Cipher selection
