@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Scout Cipher GUI - NiceGUI-baserat gränssnitt för scout-chiffer
+ChifferSkiftaren - NiceGUI-baserat gränssnitt för scout-chiffer
 """
 
 import json
@@ -26,7 +26,7 @@ CIPHERS = {
     'scout': {
         'name': 'SCOUT-scout',
         'description': '5x5 rutnät',
-        'icon': '🔤',
+        'icon': 'grid_view',
         'function': scout_scout_cipher,
         'full_description': '''**SCOUT-scout chiffer** använder ett 5×5 rutnät där kolumnerna heter SCOUT (versaler) 
 och raderna heter scout (gemener). Varje bokstav kodas som kolumn+rad, t.ex. A=Ss, B=Cs.
@@ -45,12 +45,12 @@ Bokstäverna Q, W, X, Z ingår inte i detta chiffer.''',
  t │ V  │ Y  │ Å  │ Ä  │ Ö  │
    └────┴────┴────┴────┴────┘
 
-Exempel: HEJA → Hc Tc Tc Co</pre>'''
+Exempel: HEJA → OcTsTcSs</pre>'''
     },
     'bradgards': {
         'name': 'Brädgård',
         'description': 'Rutchiffer (SVG)',
-        'icon': '📊',
+        'icon': 'apps',
         'function': bradgards_svg_cipher,
         'html_output': True,
         'full_description': '''**Brädgårdschiffer** (även kallat rutchiffer eller frimurare-chiffer) använder ett 3×3 rutnät 
@@ -73,7 +73,7 @@ A (övre vänstra) = _| , E (mitten) = □ , I (nedre högra) = |‾</pre>'''
     'runes': {
         'name': 'Runor',
         'description': 'Runalfabet',
-        'icon': 'ᚱ',
+        'icon': 'translate',
         'function': rune_cipher,
         'full_description': '''**Runchiffer** ersätter bokstäver med runtecken. I avkodningsläget finns
 ett on-screen-keyboard med runor, på samma sätt som i Brädgård-läget.''',
@@ -85,7 +85,7 @@ U=ᚢ  V=ᚡ  W=ᚹ  X=ᛪ  Y=ᛦ  Z=ᛉ  Å=ᚫ  Ä=ᛅ  Ö=ᚯ</pre>'''
     'caesar': {
         'name': 'Caesar',
         'description': 'Förskjutning',
-        'icon': '🏛️',
+        'icon': 'history',
         'function': caesar_cipher,
         'full_description': '''**Caesarchiffer** (förskjutningschiffer) flyttar varje bokstav ett antal steg 
 i alfabetet. Julius Caesar använde förskjutning +3. Med det svenska alfabetet 
@@ -105,7 +105,7 @@ Tips: ROT13 (förskjutning +13) är populärt på internet.</pre>'''
     'reversed': {
         'name': 'Omvänt alfabet',
         'description': 'A↔Ö, B↔Ä...',
-        'icon': '🔀',
+        'icon': 'swap_horiz',
         'function': reversed_alphabet_cipher,
         'full_description': '''**Omvänt alfabet-chiffer** (Atbash) ersätter varje bokstav med dess "spegelbild" 
 i alfabetet. A blir Ö, B blir Ä, C blir Å, osv. Kodning och avkodning är 
@@ -124,7 +124,7 @@ Observera: O i mitten förblir O (det är sin egen spegelbild).</pre>'''
     'thermometer': {
         'name': 'Termometer',
         'description': '+14 till -13',
-        'icon': '🌡️',
+        'icon': 'thermostat',
         'function': thermometer_cipher,
         'full_description': '''**Termometerchiffer** representerar bokstäver som temperaturer. A är +14°, 
 O (bokstav 15) är 0°, och Ö är -13°. Praktiskt för geochaching eller 
@@ -149,7 +149,7 @@ Mellanslag kodas som /</pre>'''
     'morse': {
         'name': 'Morse',
         'description': 'Morsekod',
-        'icon': '📡',
+        'icon': 'radio',
         'function': morse_cipher,
         'full_description': '''**Morsekod** är ett kommunikationssystem uppfunnet av Samuel Morse på 1830-talet. 
 Varje bokstav och siffra representeras av korta (.) och långa (-) signaler. 
@@ -170,7 +170,7 @@ Mellanslag mellan ord: /</pre>'''
     'alphanumeric': {
         'name': 'Sifferchiffer',
         'description': 'A=01, B=02...',
-        'icon': '🔢',
+        'icon': 'tag',
         'function': alphanumeric_cipher,
         'full_description': '''**Sifferchiffer** (alfanumeriskt chiffer) ersätter varje bokstav med dess 
 position i alfabetet, formaterat som tvåsiffriga tal. A=01, B=02, ... Ö=29. 
@@ -189,7 +189,7 @@ Exempel: "HEJ 2" → "08 05 10 - #2"</pre>'''
     'ascii': {
         'name': 'ASCII',
         'description': 'ASCII-värden',
-        'icon': '💻',
+        'icon': 'code',
         'function': ascii_cipher,
         'full_description': '''**ASCII-chiffer** kodar varje tecken som dess ASCII-värde (American Standard Code 
 for Information Interchange). Gemener, versaler och specialtecken får olika koder. 
@@ -340,10 +340,7 @@ def main_page():
         if shift_row:
             shift_row.set_visibility(cipher_id == 'caesar')
 
-        key_select = ui_refs.get('key_cipher_select')
-        if key_select:
-            key_select.value = cipher_id
-            update_key_preview()
+        update_key_preview()
 
         update_mode_ui()
         # Update reference section
@@ -357,7 +354,10 @@ def main_page():
         ref_desc = ui_refs.get('ref_desc')
         ref_content = ui_refs.get('ref_content')
         if ref_title:
-            ref_title.text = f"{cipher_config['icon']} {cipher_config['name']}"
+            ref_title.text = cipher_config['name']
+        ref_icon = ui_refs.get('ref_icon')
+        if ref_icon:
+            ref_icon.name = cipher_config['icon']
         if ref_desc:
             ref_desc.content = cipher_config.get('full_description', '')
         if ref_content:
@@ -444,16 +444,15 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         return CIPHERS[cipher_id].get('reference', '')
 
     def update_key_preview():
-        """Update key preview content."""
-        key_select = ui_refs.get('key_cipher_select')
+        """Update key preview content based on currently selected cipher."""
         key_preview = ui_refs.get('key_preview_html')
         key_shift_row = ui_refs.get('key_caesar_shift_row')
         key_shift_input = ui_refs.get('key_caesar_shift')
 
-        if not key_select or not key_preview:
+        if not key_preview:
             return
 
-        cipher_id = key_select.value or selected_cipher['value']
+        cipher_id = selected_cipher['value']
         shift = 4
         if key_shift_input and key_shift_input.value is not None:
             try:
@@ -520,7 +519,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 </head>
 <body>
     <div class="card">
-        <h1>🔑 Nyckel: {title}</h1>
+        <h1>Nyckel: {title}</h1>
         <div class="sub">{subtitle}</div>
         {key_content}
         <a class="repo" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
@@ -541,14 +540,10 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         return html, base_filename
 
     def get_key_selection():
-        """Resolve currently selected key cipher and shift."""
-        key_select = ui_refs.get('key_cipher_select')
+        """Resolve currently selected cipher and shift for key generation."""
         key_shift_input = ui_refs.get('key_caesar_shift')
 
-        if not key_select:
-            return selected_cipher['value'], 4
-
-        cipher_id = key_select.value or selected_cipher['value']
+        cipher_id = selected_cipher['value']
         shift = 4
         if key_shift_input and key_shift_input.value is not None:
             try:
@@ -1119,7 +1114,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
     with ui.column().classes('w-full items-center p-4 min-h-screen'):
         # Theme toggle switch
         with ui.row().classes('theme-toggle theme-switch items-center gap-2'):
-            sun_icon = ui.label('☀').classes('theme-icon')
+            sun_icon = ui.icon('light_mode').classes('theme-icon')
             def on_theme_change(e):
                 if isinstance(e.value, bool):
                     is_dark = e.value
@@ -1134,12 +1129,14 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                     moon_icon.classes(remove='active')
 
             theme_switch = ui.switch(value=True, on_change=on_theme_change).props('dense color=primary')
-            moon_icon = ui.label('🌙').classes('theme-icon active')
+            moon_icon = ui.icon('dark_mode').classes('theme-icon active')
             ui.label('Theme').classes('theme-label')
         
         # Header
         with ui.row().classes('items-center gap-4 mb-6'):
-            ui.label('⚜️').classes('text-5xl')
+            ui.html('''<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="rp-title">
+                <path d="M12 2C12 2 9 5 9 8c0 1.5.5 2.5 1.5 3.5-1.5.5-3.5 1-3.5 3.5 0 2 1.5 3.5 3.5 3.5-.5 1-.5 2.5.5 3.5h2c1-1 1-2.5.5-3.5 2 0 3.5-1.5 3.5-3.5 0-2.5-2-3-3.5-3.5 1-1 1.5-2 1.5-3.5 0-3-3-6-3-6z"/>
+            </svg>''')
             with ui.column().classes('gap-0'):
                 ui.label('ChifferSkiftaren').classes('text-4xl font-bold rp-title')
                 ui.label('Koda och avkoda meddelanden som en scout!').classes('rp-subtitle')
@@ -1157,7 +1154,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                         card.classes(add='selected')
                     
                     with ui.column().classes('items-center gap-1'):
-                        ui.label(cipher_info['icon']).classes('text-2xl')
+                        ui.icon(cipher_info['icon']).classes('text-2xl')
                         ui.label(cipher_info['name']).classes('text-sm font-bold text-center rp-text')
                         ui.label(cipher_info['description']).classes('text-xs text-center rp-muted')
                     
@@ -1297,32 +1294,14 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         
         # Action buttons
         with ui.row().classes('gap-4 mt-4'):
-            ui.button('📋 Kopiera', on_click=copy_output).props('outline color=primary')
-            ui.button('🗑️ Rensa', on_click=clear_all).props('outline color=grey')
+            ui.button('Kopiera', on_click=copy_output, icon='content_copy').props('outline color=primary')
+            ui.button('Rensa', on_click=clear_all, icon='delete').props('outline color=grey')
         
-        # Reference section (dynamic based on selected cipher)
-        with ui.expansion('🔑 Generera Nyckel', icon='key').classes('w-full max-w-4xl mt-6 rp-card'):
-            ui.label('Skapa en nedladdningsbar nyckel för valt chiffer').classes('text-lg font-semibold mb-2 rp-text')
-
-            ui.html('''
-                <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-                    </svg>
-                    github.com/kylberg/scout
-                </a>
-            ''').classes('mb-2')
+        # Key generation section (uses currently selected cipher)
+        with ui.expansion('Generera Nyckel', icon='key').classes('w-full max-w-4xl mt-6 rp-card'):
+            ui.label('Ladda ner en utskrivbar nyckel för valt chiffer').classes('text-lg font-semibold mb-2 rp-text')
 
             with ui.row().classes('items-center gap-3 flex-wrap mb-2'):
-                key_options = {cid: f"{cfg['icon']} {cfg['name']}" for cid, cfg in CIPHERS.items()}
-                key_cipher_select = ui.select(
-                    options=key_options,
-                    value='scout',
-                    on_change=lambda e: update_key_preview(),
-                    label='Chiffer för nyckel',
-                ).classes('w-80').props('outlined dense')
-                ui_refs['key_cipher_select'] = key_cipher_select
-
                 ui.button('Ladda ner nyckel (HTML)', on_click=download_key_html).props('outline color=primary')
                 ui.button('Ladda ner nyckel (PDF)', on_click=download_key_pdf).props('outline color=primary')
 
@@ -1343,11 +1322,13 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             ui_refs['key_preview_html'] = key_preview_html
             update_key_preview()
 
-        with ui.expansion('📚 Referens', icon='menu_book').classes('w-full max-w-4xl mt-6 rp-card'):
+        with ui.expansion('Referens', icon='menu_book').classes('w-full max-w-4xl mt-6 rp-card'):
             # Get initial cipher config
             initial_cipher = CIPHERS['scout']
             
-            ref_title = ui.label(f"{initial_cipher['icon']} {initial_cipher['name']}").classes('text-xl font-bold mb-2 rp-title')
+            with ui.row().classes('items-center gap-2 mb-2'):
+                ui_refs['ref_icon'] = ui.icon(initial_cipher['icon']).classes('text-xl rp-title')
+                ref_title = ui.label(initial_cipher['name']).classes('text-xl font-bold rp-title')
             ui_refs['ref_title'] = ref_title
             
             ref_desc = ui.markdown(initial_cipher.get('full_description', '')).classes('mb-4 rp-text')
@@ -1359,14 +1340,28 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         
         # Footer
         ui.separator().classes('mt-8')
-        ui.label('⚜️ Scout Cipher - Gjord för scouter av scouter').classes('text-gray-400 text-sm mt-2')
+        ui.label('ChifferSkiftaren • Gjord för scouter av scouter').classes('text-gray-400 text-sm mt-2')
         ui.html('''
-            <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-                </svg>
-                github.com/kylberg/scout
-            </a>
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
+                <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    GitHub
+                </a>
+                <a class="github-link" href="https://github.com/kylberg/scout/blob/main/README.md" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    README
+                </a>
+                <a class="github-link" href="https://github.com/kylberg/scout/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/>
+                    </svg>
+                    MIT License
+                </a>
+            </div>
         ''').classes('mt-2')
 
         # Initialize mode-specific UI visibility
@@ -1375,7 +1370,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
 if __name__ in {'__main__', '__mp_main__'}:
     ui.run(
-        title='Scout Cipher',
+        title='ChifferSkiftaren',
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 8080)),
         reload=False,
