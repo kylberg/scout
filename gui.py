@@ -11,6 +11,7 @@ from scout_cipher import (
     scout_scout_cipher,
     bradgards_svg_cipher,
     bradgards_svg_grid,
+    rune_cipher,
     morse_cipher,
     alphanumeric_cipher,
     ascii_cipher,
@@ -67,6 +68,18 @@ Grid 1 (ingen prick):    Grid 2 (en prick):     Grid 3 (två prickar):
 
 Bokstaven representeras av linjerna som omger positionen i rutnätet.
 A (övre vänstra) = _| , E (mitten) = □ , I (nedre högra) = |‾</pre>'''
+    },
+    'runes': {
+        'name': 'Runor',
+        'description': 'Runalfabet',
+        'icon': 'ᚱ',
+        'function': rune_cipher,
+        'full_description': '''**Runchiffer** ersätter bokstäver med runtecken. I avkodningsläget finns
+ett on-screen-keyboard med runor, på samma sätt som i Brädgård-läget.''',
+        'reference': '''<pre style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+A=ᚨ  B=ᛒ  C=ᚲ  D=ᛞ  E=ᛖ  F=ᚠ  G=ᚷ  H=ᚺ  I=ᛁ  J=ᛃ
+K=ᚴ  L=ᛚ  M=ᛗ  N=ᚾ  O=ᛟ  P=ᛈ  Q=ᛩ  R=ᚱ  S=ᛊ  T=ᛏ
+U=ᚢ  V=ᚡ  W=ᚹ  X=ᛪ  Y=ᛦ  Z=ᛉ  Å=ᚫ  Ä=ᛅ  Ö=ᚯ</pre>'''
     },
     'caesar': {
         'name': 'Caesar',
@@ -204,6 +217,7 @@ def main_page():
     is_encoding = {'value': True}
     caesar_shift = {'value': 3}
     bradgards_decoded = {'value': ''}
+    runes_decoded = {'value': ''}
     cipher_cards = {}
     
     # References to UI elements (will be set later)
@@ -238,6 +252,23 @@ def main_page():
             if output_text:
                 output_text.set_visibility(True)
                 output_text.value = bradgards_decoded['value']
+            return
+
+        # Rune decode is interactive via on-screen keyboard
+        if selected_cipher['value'] == 'runes' and not is_encoding['value']:
+            rune_preview = rune_cipher(runes_decoded['value'], encode=True)
+            if input_html:
+                input_html.set_visibility(True)
+                input_html.set_content(
+                    '<div style="font-size: 2rem; line-height:1.6; white-space: pre-wrap;">'
+                    f'{rune_preview}'
+                    '</div>'
+                )
+            if output_html:
+                output_html.set_visibility(False)
+            if output_text:
+                output_text.set_visibility(True)
+                output_text.value = runes_decoded['value']
             return
 
         # Brädgård encode preview should match export layout (same chars per row)
@@ -307,6 +338,12 @@ def main_page():
         shift_row = ui_refs.get('shift_row')
         if shift_row:
             shift_row.set_visibility(cipher_id == 'caesar')
+
+        key_select = ui_refs.get('key_cipher_select')
+        if key_select:
+            key_select.value = cipher_id
+            update_key_preview()
+
         update_mode_ui()
         # Update reference section
         update_reference()
@@ -376,10 +413,202 @@ def main_page():
             sign = '+' if caesar_shift['value'] >= 0 else ''
             shift_label.text = f'{sign}{caesar_shift["value"]}'
         process_text()
+
+    def build_caesar_reference_html(shift):
+        """Build Caesar key table for a specific shift."""
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ"
+        normalized_shift = shift % len(alphabet)
+        shifted = alphabet[normalized_shift:] + alphabet[:normalized_shift]
+        shift_sign = '+' if shift >= 0 else ''
+        example = caesar_cipher("SCOUT", shift=shift, encode=True)
+
+        plain = ' '.join(alphabet)
+        coded = ' '.join(shifted)
+
+        return f'''<pre style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+Förskjutning: {shift_sign}{shift}
+
+Vanligt:  {plain}
+Kodat:    {coded}
+
+Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
+</pre>'''
+
+    def get_key_reference_html(cipher_id, caesar_key_shift):
+        """Get key reference content for selected cipher."""
+        if cipher_id == 'bradgards':
+            return build_bradgards_reference_html()
+        if cipher_id == 'caesar':
+            return build_caesar_reference_html(caesar_key_shift)
+        return CIPHERS[cipher_id].get('reference', '')
+
+    def update_key_preview():
+        """Update key preview content."""
+        key_select = ui_refs.get('key_cipher_select')
+        key_preview = ui_refs.get('key_preview_html')
+        key_shift_row = ui_refs.get('key_caesar_shift_row')
+        key_shift_input = ui_refs.get('key_caesar_shift')
+
+        if not key_select or not key_preview:
+            return
+
+        cipher_id = key_select.value or selected_cipher['value']
+        shift = 4
+        if key_shift_input and key_shift_input.value is not None:
+            try:
+                shift = int(key_shift_input.value)
+            except (TypeError, ValueError):
+                shift = 4
+
+        if key_shift_row:
+            key_shift_row.set_visibility(cipher_id == 'caesar')
+
+        key_preview.set_content(get_key_reference_html(cipher_id, shift))
+
+    def build_key_document_html(cipher_id, shift):
+        """Build standalone HTML document for a key."""
+        github_logo = '''<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+</svg>'''
+
+        cipher_config = CIPHERS[cipher_id]
+        title = cipher_config['name']
+        subtitle = cipher_config.get('description', '')
+        key_content = get_key_reference_html(cipher_id, shift)
+
+        html = f'''<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyckel - {title}</title>
+    <style>
+        body {{
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #faf4ed;
+            color: #575279;
+            margin: 0;
+            padding: 24px;
+        }}
+        .card {{
+            max-width: 980px;
+            margin: 0 auto;
+            background: #fffaf3;
+            border: 1px solid #dfdad9;
+            border-radius: 12px;
+            padding: 20px;
+        }}
+        h1 {{ margin: 0 0 4px 0; color: #907aa9; }}
+        .sub {{ color: #797593; margin-bottom: 16px; }}
+        .repo {{
+            margin-top: 12px;
+            font-size: 13px;
+            color: #286983;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }}
+        pre {{
+            background: #f2e9e1;
+            border-radius: 8px;
+            padding: 12px;
+            overflow: auto;
+        }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔑 Nyckel: {title}</h1>
+        <div class="sub">{subtitle}</div>
+        {key_content}
+        <a class="repo" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
+            {github_logo}
+            github.com/kylberg/scout
+        </a>
+    </div>
+</body>
+</html>'''
+
+        safe_name = title.lower().replace(' ', '_').replace('å', 'a').replace('ä', 'a').replace('ö', 'o')
+        if cipher_id == 'caesar':
+            shift_sign = 'plus' if shift >= 0 else 'minus'
+            base_filename = f'nyckel_{safe_name}_{shift_sign}_{abs(shift)}'
+        else:
+            base_filename = f'nyckel_{safe_name}'
+
+        return html, base_filename
+
+    def get_key_selection():
+        """Resolve currently selected key cipher and shift."""
+        key_select = ui_refs.get('key_cipher_select')
+        key_shift_input = ui_refs.get('key_caesar_shift')
+
+        if not key_select:
+            return selected_cipher['value'], 4
+
+        cipher_id = key_select.value or selected_cipher['value']
+        shift = 4
+        if key_shift_input and key_shift_input.value is not None:
+            try:
+                shift = int(key_shift_input.value)
+            except (TypeError, ValueError):
+                shift = 4
+
+        return cipher_id, shift
+
+    def download_key_html():
+        """Download printable key as standalone HTML."""
+        cipher_id, shift = get_key_selection()
+
+        html, base_filename = build_key_document_html(cipher_id, shift)
+
+        html_js = json.dumps(html)
+        filename_js = json.dumps(f'{base_filename}.html')
+        ui.run_javascript(f'''
+            const htmlContent = {html_js};
+            const filename = {filename_js};
+            const blob = new Blob([htmlContent], {{ type: 'text/html;charset=utf-8' }});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        ''')
+
+    def download_key_pdf():
+        """Open printable key in a new tab and trigger print dialog (save as PDF)."""
+        cipher_id, shift = get_key_selection()
+
+        html, base_filename = build_key_document_html(cipher_id, shift)
+        html_js = json.dumps(html)
+        title_js = json.dumps(base_filename)
+        ui.run_javascript(f'''
+            const htmlContent = {html_js};
+            const title = {title_js};
+            const blob = new Blob([htmlContent], {{ type: 'text/html;charset=utf-8' }});
+            const url = URL.createObjectURL(blob);
+            const win = window.open(url, '_blank');
+            if (win) {{
+                win.document.title = title;
+                win.addEventListener('load', () => {{
+                    win.focus();
+                    win.print();
+                }});
+            }}
+            URL.revokeObjectURL(url);
+        ''')
+        ui.notify('Spara som PDF i utskriftsdialogen.', type='info')
     
     def toggle_mode(value):
         """Toggle encode/decode mode"""
-        is_encoding['value'] = value
+        if isinstance(value, bool):
+            is_encoding['value'] = value
+        else:
+            is_encoding['value'] = (value == 'encode')
         update_mode_ui()
         process_text()
     
@@ -387,11 +616,37 @@ def main_page():
         """Swap input and output"""
         inp = ui_refs.get('input')
         out = ui_refs.get('output')
-        switch = ui_refs.get('switch')
-        if inp and out and switch:
+        mode_toggle = ui_refs.get('mode_toggle')
+
+        # Interactive ciphers need special swap behavior
+        if selected_cipher['value'] == 'bradgards' and mode_toggle and inp:
+            if is_encoding['value']:
+                bradgards_decoded['value'] = inp.value or ''
+                is_encoding['value'] = False
+            else:
+                inp.value = bradgards_decoded['value']
+                is_encoding['value'] = True
+            mode_toggle.value = 'encode' if is_encoding['value'] else 'decode'
+            update_mode_ui()
+            process_text()
+            return
+
+        if selected_cipher['value'] == 'runes' and mode_toggle and inp:
+            if is_encoding['value']:
+                runes_decoded['value'] = inp.value or ''
+                is_encoding['value'] = False
+            else:
+                inp.value = runes_decoded['value']
+                is_encoding['value'] = True
+            mode_toggle.value = 'encode' if is_encoding['value'] else 'decode'
+            update_mode_ui()
+            process_text()
+            return
+
+        if inp and out and mode_toggle:
             inp.value, out.value = out.value or '', inp.value or ''
             is_encoding['value'] = not is_encoding['value']
-            switch.value = is_encoding['value']
+            mode_toggle.value = 'encode' if is_encoding['value'] else 'decode'
     
     def copy_output():
         """Copy output to clipboard"""
@@ -409,6 +664,7 @@ def main_page():
         if out:
             out.value = ''
         bradgards_decoded['value'] = ''
+        runes_decoded['value'] = ''
 
     def append_bradgards_letter(letter):
         """Append a decoded letter in interactive Brädgård mode"""
@@ -423,6 +679,21 @@ def main_page():
     def bradgards_clear():
         """Clear decoded text in interactive Brädgård mode"""
         bradgards_decoded['value'] = ''
+        process_text()
+
+    def append_rune_letter(letter):
+        """Append a decoded letter in interactive Rune mode"""
+        runes_decoded['value'] += letter
+        process_text()
+
+    def rune_backspace():
+        """Delete one character in interactive Rune mode"""
+        runes_decoded['value'] = runes_decoded['value'][:-1]
+        process_text()
+
+    def rune_clear():
+        """Clear decoded text in interactive Rune mode"""
+        runes_decoded['value'] = ''
         process_text()
 
     def get_chars_per_row():
@@ -506,6 +777,8 @@ def main_page():
     def update_mode_ui():
         """Show/hide controls for special interactive decode modes"""
         is_bradgards_decode = selected_cipher['value'] == 'bradgards' and not is_encoding['value']
+        is_runes_decode = selected_cipher['value'] == 'runes' and not is_encoding['value']
+        is_interactive_decode = is_bradgards_decode or is_runes_decode
         is_bradgards_encode = selected_cipher['value'] == 'bradgards' and is_encoding['value']
 
         input_column = ui_refs.get('input_column')
@@ -513,18 +786,21 @@ def main_page():
         input_html = ui_refs.get('input_html')
         swap_column = ui_refs.get('swap_column')
         decode_panel = ui_refs.get('bradgards_decode_panel')
+        runes_decode_panel = ui_refs.get('runes_decode_panel')
         export_panel = ui_refs.get('bradgards_export_panel')
 
         if input_column:
             input_column.set_visibility(True)
         if input_textarea:
-            input_textarea.set_visibility(not is_bradgards_decode)
+            input_textarea.set_visibility(not is_interactive_decode)
         if input_html:
-            input_html.set_visibility(is_bradgards_decode)
+            input_html.set_visibility(is_interactive_decode)
         if swap_column:
             swap_column.set_visibility(True)
         if decode_panel:
             decode_panel.set_visibility(is_bradgards_decode)
+        if runes_decode_panel:
+            runes_decode_panel.set_visibility(is_runes_decode)
         if export_panel:
             export_panel.set_visibility(is_bradgards_encode)
     
@@ -725,6 +1001,62 @@ def main_page():
             text-transform: uppercase;
         }
 
+        .mode-toggle {
+            border: 1px solid var(--rp-highlight-med);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--rp-overlay);
+        }
+
+        .mode-toggle .q-btn {
+            min-width: 110px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: none;
+            color: var(--rp-subtle) !important;
+            background: var(--rp-highlight-low) !important;
+            border: 0;
+            box-shadow: none;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .mode-toggle .q-btn:not(.q-btn--active) {
+            color: var(--rp-muted) !important;
+            background: var(--rp-highlight-low) !important;
+        }
+
+        .mode-toggle .q-btn:hover {
+            background: var(--rp-highlight-med) !important;
+            color: var(--rp-text) !important;
+        }
+
+        .mode-toggle .q-btn.q-btn--active {
+            background: var(--rp-iris) !important;
+            color: var(--rp-base) !important;
+            text-shadow: none;
+        }
+
+        body.dark .mode-toggle .q-btn.q-btn--active {
+            color: var(--rp-base) !important;
+        }
+
+        .big-textarea .q-field__native {
+            font-size: 1.1rem !important;
+            line-height: 1.6 !important;
+            letter-spacing: 0.01em;
+        }
+
+        .rune-tile {
+            min-width: 74px;
+            min-height: 74px;
+            padding: 0.25rem;
+        }
+
+        .rune-glyph {
+            font-size: 2rem;
+            line-height: 1;
+        }
+
         .symbol-tile {
             cursor: pointer;
             user-select: none;
@@ -751,10 +1083,34 @@ def main_page():
             text-align: center;
             margin-top: 0.25rem;
         }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: var(--rp-pine);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .github-link:hover {
+            color: var(--rp-iris);
+        }
+
+        .key-preview {
+            border: 1px solid var(--rp-highlight-med);
+            border-radius: 10px;
+            padding: 12px;
+            background: var(--rp-surface);
+        }
     </style>
     <script>
         // Dark mode is always default on load.
-        document.body.classList.add('dark');
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body) {
+                document.body.classList.add('dark');
+            }
+        });
     </script>
     ''')
     
@@ -784,7 +1140,7 @@ def main_page():
         with ui.row().classes('items-center gap-4 mb-6'):
             ui.label('⚜️').classes('text-5xl')
             with ui.column().classes('gap-0'):
-                ui.label('Scout Cipher').classes('text-4xl font-bold rp-title')
+                ui.label('Scoutiga chifferskiftaren').classes('text-4xl font-bold rp-title')
                 ui.label('Koda och avkoda meddelanden som en scout!').classes('rp-subtitle')
         
         # Cipher selection
@@ -818,10 +1174,13 @@ def main_page():
         
         # Mode toggle
         with ui.row().classes('items-center gap-4 mb-4'):
-            ui.label('Avkoda').classes('text-lg font-medium')
-            switch = ui.switch(value=True, on_change=lambda e: toggle_mode(e.value))
-            ui_refs['switch'] = switch
-            ui.label('Koda').classes('text-lg font-medium')
+            ui.label('Läge:').classes('text-lg font-medium')
+            mode_toggle = ui.toggle(
+                options={'decode': 'Avkoda', 'encode': 'Koda'},
+                value='encode',
+                on_change=lambda e: toggle_mode(e.value),
+            ).classes('mode-toggle').props('unelevated rounded')
+            ui_refs['mode_toggle'] = mode_toggle
         
         # Main content area
         with ui.card().classes('w-full max-w-4xl p-4 rp-card'):
@@ -833,7 +1192,7 @@ def main_page():
                     input_area = ui.textarea(
                         placeholder='Skriv ditt meddelande här...',
                         on_change=lambda e: process_text()
-                    ).classes('w-full font-mono').props('outlined rows=8')
+                    ).classes('w-full font-mono big-textarea').props('outlined rows=8')
                     ui_refs['input'] = input_area
                     input_html = ui.html('').classes('w-full p-4 rounded border min-h-32').style(
                         'background-color: var(--rp-surface); border-color: var(--rp-highlight-med); min-height: 180px;'
@@ -849,7 +1208,7 @@ def main_page():
                 # Output section
                 with ui.column().classes('flex-1'):
                     ui.label('Resultat:').classes('text-lg font-semibold mb-2')
-                    output_area = ui.textarea().classes('w-full font-mono').props('outlined readonly rows=8')
+                    output_area = ui.textarea().classes('w-full font-mono big-textarea').props('outlined readonly rows=8')
                     ui_refs['output'] = output_area
                     # HTML output for SVG ciphers
                     output_html = ui.html('').classes('w-full p-4 rounded border min-h-32').style(
@@ -906,6 +1265,34 @@ def main_page():
                     ui_refs['chars_per_row'] = chars_per_row
                     ui.button('Ladda ner SVG', on_click=download_bradgards_svg).props('outline color=primary')
                     ui.button('Ladda ner PNG', on_click=download_bradgards_png).props('outline color=primary')
+
+            # Rune decode panel (visible in Runor + Avkoda)
+            with ui.column().classes('w-full mt-4') as runes_decode_panel:
+                ui_refs['runes_decode_panel'] = runes_decode_panel
+                runes_decode_panel.set_visibility(False)
+
+                ui.label('Avkoda Runor: klicka runtecknen för att skriva meddelandet').classes('text-md font-semibold mb-2 rp-text')
+
+                rune_rows = [
+                    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
+                    ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'],
+                    ['U', 'V', 'W', 'X', 'Y', 'Z', 'Å', 'Ä', 'Ö'],
+                ]
+
+                with ui.card().classes('rp-card p-3'):
+                    for row in rune_rows:
+                        with ui.row().classes('gap-2 mb-2 flex-wrap'):
+                            for letter in row:
+                                rune_symbol = rune_cipher(letter, encode=True)
+                                with ui.column().classes('items-center gap-0'):
+                                    tile = ui.html(f'<div class="rune-glyph">{rune_symbol}</div>').classes('symbol-tile rune-tile')
+                                    tile.on('click', lambda e, l=letter: append_rune_letter(l))
+                                    ui.label(letter).classes('symbol-label')
+
+                with ui.row().classes('gap-2 mt-3'):
+                    ui.button('Mellanslag', on_click=lambda: append_rune_letter(' ')).props('outline color=primary')
+                    ui.button('⌫ Backa', on_click=rune_backspace).props('outline color=primary')
+                    ui.button('Rensa', on_click=rune_clear).props('outline color=grey')
         
         # Action buttons
         with ui.row().classes('gap-4 mt-4'):
@@ -913,6 +1300,48 @@ def main_page():
             ui.button('🗑️ Rensa', on_click=clear_all).props('outline color=grey')
         
         # Reference section (dynamic based on selected cipher)
+        with ui.expansion('🔑 Generera Nyckel', icon='key').classes('w-full max-w-4xl mt-6 rp-card'):
+            ui.label('Skapa en nedladdningsbar nyckel för valt chiffer').classes('text-lg font-semibold mb-2 rp-text')
+
+            ui.html('''
+                <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    github.com/kylberg/scout
+                </a>
+            ''').classes('mb-2')
+
+            with ui.row().classes('items-center gap-3 flex-wrap mb-2'):
+                key_options = {cid: f"{cfg['icon']} {cfg['name']}" for cid, cfg in CIPHERS.items()}
+                key_cipher_select = ui.select(
+                    options=key_options,
+                    value='scout',
+                    on_change=lambda e: update_key_preview(),
+                    label='Chiffer för nyckel',
+                ).classes('w-80').props('outlined dense')
+                ui_refs['key_cipher_select'] = key_cipher_select
+
+                ui.button('Ladda ner nyckel (HTML)', on_click=download_key_html).props('outline color=primary')
+                ui.button('Ladda ner nyckel (PDF)', on_click=download_key_pdf).props('outline color=primary')
+
+            with ui.row().classes('items-center gap-3 flex-wrap mb-2') as key_caesar_shift_row:
+                ui_refs['key_caesar_shift_row'] = key_caesar_shift_row
+                ui.label('Caesar-förskjutning:').classes('rp-text')
+                key_caesar_shift = ui.number(
+                    value=4,
+                    min=-28,
+                    max=28,
+                    step=1,
+                    on_change=lambda e: update_key_preview(),
+                ).classes('w-32').props('outlined dense')
+                ui_refs['key_caesar_shift'] = key_caesar_shift
+                ui.button('+4', on_click=lambda: (setattr(key_caesar_shift, 'value', 4), update_key_preview())).props('outline color=primary')
+
+            key_preview_html = ui.html('').classes('w-full key-preview rp-text')
+            ui_refs['key_preview_html'] = key_preview_html
+            update_key_preview()
+
         with ui.expansion('📚 Referens', icon='menu_book').classes('w-full max-w-4xl mt-6 rp-card'):
             # Get initial cipher config
             initial_cipher = CIPHERS['scout']
@@ -930,6 +1359,14 @@ def main_page():
         # Footer
         ui.separator().classes('mt-8')
         ui.label('⚜️ Scout Cipher - Gjord för scouter av scouter').classes('text-gray-400 text-sm mt-2')
+        ui.html('''
+            <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+                github.com/kylberg/scout
+            </a>
+        ''').classes('mt-2')
 
         # Initialize mode-specific UI visibility
         update_mode_ui()
