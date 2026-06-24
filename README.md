@@ -166,4 +166,10 @@ Känner du till andra scout-chiffer som skulle passa in här? Skapa gärna en pu
 
 ## Licens
 
+MIT License — se [LICENSE](LICENSE) för detaljer.
+
+---
+
+Skapat av [Gustaf Kylberg](https://github.com/kylberg) ⚜️
+
 Detta projekt är fritt att använda för scouting och utbildningsändamål.

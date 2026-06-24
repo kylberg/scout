@@ -5,6 +5,7 @@ Scout Cipher GUI - NiceGUI-baserat gränssnitt för scout-chiffer
 """
 
 import json
+import os
 
 from nicegui import ui
 from scout_cipher import (
@@ -1376,7 +1377,7 @@ if __name__ in {'__main__', '__mp_main__'}:
     ui.run(
         title='Scout Cipher',
         host='0.0.0.0',
-        port=8080,
+        port=int(os.environ.get('PORT', 8080)),
         reload=False,
         show=False
     )
