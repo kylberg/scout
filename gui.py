@@ -22,6 +22,17 @@ from scout_cipher import (
     bacon_cipher
 )
 
+def log_event(event_namn, event_kategori=None):
+    """Skickar en anpassad händelse till Umami om statistik är aktivt."""
+    # Vi kollar först så att Umami-skriptet faktiskt laddades (via vår miljövariabel)
+    if os.environ.get("UMAMI_WEBSITE_ID"):
+        if event_kategori:
+            # Om du vill skicka med extra info, t.ex. kategori='Bacon-chiffer'
+            ui.run_javascript(
+                f"if(window.umami) umami.track('{event_namn}', {{ kategori: '{event_kategori}' }});"
+            )
+        else:
+            ui.run_javascript(f"if(window.umami) umami.track('{event_namn}');")
 
 def load_app_version(default='0.1.0'):
     """Load app version from VERSION file in project root."""
@@ -430,7 +441,11 @@ def main_page():
     
     def select_cipher(cipher_id):
         """Select a cipher and update styling"""
+        previous_cipher_id = selected_cipher['value']
         selected_cipher['value'] = cipher_id
+        if previous_cipher_id != cipher_id:
+            cipher_name = CIPHERS.get(cipher_id, {}).get('name', cipher_id)
+            log_event(cipher_name, event_kategori='cipher_selection')
         for cid, card in cipher_cards.items():
             if cid == cipher_id:
                 card.classes(add='selected')
@@ -799,6 +814,8 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
         html, base_filename = build_key_document_html(cipher_id, shift)
 
+        log_event(base_filename, event_kategori="download_key_html")
+
         html_js = json.dumps(html)
         filename_js = json.dumps(f'{base_filename}.html')
         ui.run_javascript(f'''
@@ -837,7 +854,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             URL.revokeObjectURL(url);
         ''')
         ui.notify('Webbläsaren öppnar utskrift: välj "Spara som PDF" där.', type='info')
-    
+        log_event(base_filename, event_kategori="download_key_pdf")
     def apply_mode_change(target_is_encoding, sync_toggle=False):
         """Apply mode change and move content so fields stay intuitive."""
         current_is_encoding = is_encoding['value']
@@ -959,6 +976,9 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             chars_per_row=get_chars_per_row(),
             cell_size=36,
         )
+
+        log_event("download_bradgards_svg", event_kategori="Brädgård")
+
         svg_js = json.dumps(svg_content)
         ui.run_javascript(f'''
             const svgContent = {svg_js};
@@ -985,6 +1005,9 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             chars_per_row=get_chars_per_row(),
             cell_size=36,
         )
+
+        log_event("download_bradgards_png", event_kategori="Brädgård")
+
         svg_js = json.dumps(svg_content)
         ui.run_javascript(f'''
             (async () => {{
