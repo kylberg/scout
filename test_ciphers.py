@@ -9,7 +9,6 @@ from scout_cipher import (
     bradgards_cipher, 
     simple_bradgards_cipher,
     morse_cipher,
-    rune_cipher,
     alphanumeric_cipher,
     ascii_cipher,
     caesar_cipher,
@@ -81,23 +80,6 @@ def test_morse_cipher():
         encoded = morse_cipher(message, encode=True)
         decoded = morse_cipher(encoded, encode=False)
         
-        print(f"Original:  {message}")
-        print(f"Kodad:     {encoded}")
-        print(f"Dekodad:   {decoded}")
-        print(f"Korrekt:   {'✓' if message.upper() == decoded else '✗'}")
-        print("-" * 40)
-
-
-def test_rune_cipher():
-    """Testa runchiffret"""
-    print("\n=== RUNCHIFFER TEST ===")
-
-    test_messages = ["HEJA", "SCOUT", "ÅÄÖ"]
-
-    for message in test_messages:
-        encoded = rune_cipher(message, encode=True)
-        decoded = rune_cipher(encoded, encode=False)
-
         print(f"Original:  {message}")
         print(f"Kodad:     {encoded}")
         print(f"Dekodad:   {decoded}")
@@ -226,10 +208,6 @@ def show_cipher_examples():
     morse_encoded = morse_cipher(message, encode=True)
     print(f"Morsealfabetet:           {morse_encoded}")
 
-    # Runor
-    rune_encoded = rune_cipher(message, encode=True)
-    print(f"Runchiffer:               {rune_encoded}")
-    
     # Alfanumerisk
     alpha_encoded = alphanumeric_cipher(message, encode=True)
     print(f"Sifferchiffer:            {alpha_encoded}")
@@ -246,7 +224,6 @@ if __name__ == "__main__":
     test_reversed_alphabet_cipher()
     test_thermometer_cipher()
     test_morse_cipher()
-    test_rune_cipher()
     test_alphanumeric_cipher()
     test_ascii_cipher()
     show_cipher_examples()

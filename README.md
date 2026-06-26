@@ -1,7 +1,7 @@
 # ChifferSkiftaren
 
-<!-- version: 0.1.0 -->
-Version: **0.1.0**
+<!-- version: 0.2.0 -->
+Version: **0.2.0**
 
 Koda och avkoda meddelanden som en scout! Ett Python-baserat verktyg för klassiska scout-chiffer med stöd för det svenska alfabetet.
 
@@ -13,7 +13,6 @@ Appen stöder följande chiffer:
 |---------|-------------|
 | **SCOUT-scout** | 5×5 rutnät där kolumner = SCOUT, rader = scout |
 | **Brädgård** | Klassiskt rutchiffer med SVG-symboler |
-| **Runor** | Ersätter bokstäver med runtecken |
 | **Caesar** | Förskjutningschiffer (valfritt antal steg) |
 | **Omvänt alfabet** | A↔Ö, B↔Ä... (Atbash) |
 | **Termometer** | Bokstäver som temperaturer (+14 till -14) |

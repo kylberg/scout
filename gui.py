@@ -6,13 +6,13 @@ ChifferSkiftaren - NiceGUI-baserat gränssnitt för scout-chiffer
 
 import json
 import os
+import re
 
-from nicegui import ui
+from nicegui import app, ui
 from scout_cipher import (
     scout_scout_cipher,
     bradgards_svg_cipher,
     bradgards_svg_grid,
-    rune_cipher,
     morse_cipher,
     alphanumeric_cipher,
     ascii_cipher,
@@ -35,6 +35,71 @@ def load_app_version(default='0.1.0'):
 
 
 APP_VERSION = load_app_version()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESOURCES_DIR = os.path.join(BASE_DIR, 'resources')
+
+if os.path.isdir(RESOURCES_DIR):
+    app.add_static_files('/resources', RESOURCES_DIR)
+
+
+def load_resource_svg(filename: str, default: str = '') -> str:
+    """Load SVG markup so it can inherit theme colors as inline SVG."""
+    svg_path = os.path.join(RESOURCES_DIR, filename)
+    try:
+        with open(svg_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except OSError:
+        return default
+
+    # Map hardcoded accent blue first so #000 replacements cannot corrupt #0000ff.
+    content = re.sub(
+        r'fill\s*:\s*#(?:0000ff|00f)(?![0-9a-fA-F])',
+        'fill:var(--svg-accent-color, #ea9d34)',
+        content,
+        flags=re.IGNORECASE,
+    )
+    content = re.sub(
+        r'stroke\s*:\s*#(?:0000ff|00f)(?![0-9a-fA-F])',
+        'stroke:var(--svg-accent-color, #ea9d34)',
+        content,
+        flags=re.IGNORECASE,
+    )
+    content = re.sub(
+        r'fill\s*=\s*"#(?:0000ff|00f)"',
+        'fill="var(--svg-accent-color, #ea9d34)"',
+        content,
+        flags=re.IGNORECASE,
+    )
+    content = re.sub(
+        r'stroke\s*=\s*"#(?:0000ff|00f)"',
+        'stroke="var(--svg-accent-color, #ea9d34)"',
+        content,
+        flags=re.IGNORECASE,
+    )
+
+    # Editors often write hardcoded black values; normalize those to currentColor.
+    content = re.sub(r'fill\s*:\s*#000000(?![0-9a-fA-F])', 'fill:currentColor', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*:\s*#000(?![0-9a-fA-F])', 'fill:currentColor', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*:\s*#000000(?![0-9a-fA-F])', 'stroke:currentColor', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*:\s*#000(?![0-9a-fA-F])', 'stroke:currentColor', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*=\s*"#000000"', 'fill="currentColor"', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*=\s*"#000"', 'fill="currentColor"', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*=\s*"#000000"', 'stroke="currentColor"', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*=\s*"#000"', 'stroke="currentColor"', content, flags=re.IGNORECASE)
+
+    # XML declarations are unnecessary when embedding SVG directly in HTML.
+    if content.lstrip().startswith('<?xml'):
+        content = content.split('?>', 1)[-1].lstrip()
+    return content
+
+
+TITLE_ICON_SVG = load_resource_svg('title_icon.svg')
+KEY_PIGPEN_SVG = load_resource_svg('pigpen_key.svg')
+EX_PIGPEN_SVG = load_resource_svg('pigpen_example.svg')
+
+KEY_SCOUTSCOUT_SVG = load_resource_svg('scout-scout_key.svg')
+
+EX_BACON_SVG = load_resource_svg('bacon_example.svg')
 
 # Cipher configurations with full descriptions and reference content
 CIPHERS = {
@@ -84,18 +149,6 @@ Grid 1 (ingen prick):    Grid 2 (en prick):     Grid 3 (två prickar):
 
 Bokstaven representeras av linjerna som omger positionen i rutnätet.
 A (övre vänstra) = _| , E (mitten) = □ , I (nedre högra) = |‾</pre>'''
-    },
-    'runes': {
-        'name': 'Runor',
-        'description': 'Runalfabet',
-        'icon': 'translate',
-        'function': rune_cipher,
-        'full_description': '''**Runchiffer** ersätter bokstäver med runtecken. I avkodningsläget finns
-ett on-screen-keyboard med runor, på samma sätt som i Brädgård-läget.''',
-        'reference': '''<pre style="font-family: monospace; font-size: 13px; line-height: 1.6;">
-A=ᚨ  B=ᛒ  C=ᚲ  D=ᛞ  E=ᛖ  F=ᚠ  G=ᚷ  H=ᚺ  I=ᛁ  J=ᛃ
-K=ᚴ  L=ᛚ  M=ᛗ  N=ᚾ  O=ᛟ  P=ᛈ  Q=ᛩ  R=ᚱ  S=ᛊ  T=ᛏ
-U=ᚢ  V=ᚡ  W=ᚹ  X=ᛪ  Y=ᛦ  Z=ᛉ  Å=ᚫ  Ä=ᛅ  Ö=ᚯ</pre>'''
     },
     'caesar': {
         'name': 'Caesar',
@@ -234,33 +287,34 @@ Det klassiska chiffret användes för att dölja meddelanden genom att blanda de
         'reference': '''<div style="font-family: monospace; font-size: 13px; line-height: 1.6;">
 <pre>Bacons chiffer - 5-bitars mappning (a=0, b=1):
 
-A aaaaa  N abbab  U babaa
-B aaaab  O abbba  V babab
-C aaaba  P abbbb  W babba
-D aaabb  Q baaaa  X babbb
-E aabaa  R baaab  Y bbaaa
-F aabab  S baaba  Z bbaab
+A aaaaa  N abbab
+B aaaab  O abbba
+C aaaba  P abbbb
+D aaabb  Q baaaa
+E aabaa  R baaab
+F aabab  S baaba
 G aabba  T baabb
-H aabbb  
-I abaaa
-J abaab
-K ababa
-L ababb
-M abbaa</pre>
+H aabbb  U babaa
+I abaaa  V babab
+J abaab  W babba
+K ababa  X babbb
+L ababb  Y bbaaa
+M abbaa  Z bbaab</pre>
 
-<p><strong>Klassiska döljandemetoden (formatering):</strong></p>
-<p>Meddelande: "BACON"</p>
-<p>Kodning: B=aaaab A=aaaaa C=aaaba O=abbba N=abbab</p>
-
-<p>Dölj i text med stil:</p>
-<p>The <strong>q</strong>uick brown fox jumps over <strong>the</strong> lazy dog</p>
-<p style="font-size: 12px;">
-  Th<span style="font-weight: normal;">e</span> <span style="font-weight: bold;">q</span><span style="font-weight: normal;">uick bro</span><span style="font-weight: bold;">w</span>n <span style="font-weight: normal;">fox jump</span><span style="font-weight: bold;">s</span> <span style="font-weight: normal;">ove</span><span style="font-weight: bold;">r</span> <span style="font-weight: normal;">the la</span><span style="font-weight: bold;">z</span><span style="font-weight: normal;">y do</span><span style="font-weight: bold;">g</span>
-  <br/>
-  a = normal stil | b = <strong>fet stil</strong>
-</p>
 </div>'''
     }
+}
+
+ENGLISH_CIPHER_NAMES = {
+    'scout': 'SCOUT-Scout cipher',
+    'bradgards': "Pigpen cipher (also called Freemason's or Rosicrucian cipher)",
+    'caesar': 'Caesar cipher (shift cipher)',
+    'reversed': 'Atbash cipher',
+    'thermometer': 'Thermometer cipher',
+    'morse': 'Morse code',
+    'alphanumeric': 'Alphanumeric substitution cipher',
+    'ascii': 'ASCII encoding',
+    'bacon': "Bacon's cipher",
 }
 
 
@@ -270,8 +324,8 @@ def main_page():
     selected_cipher = {'value': 'scout'}
     is_encoding = {'value': True}
     caesar_shift = {'value': 3}
+    is_syncing_caesar = {'value': False}
     bradgards_decoded = {'value': ''}
-    runes_decoded = {'value': ''}
     cipher_cards = {}
     
     # References to UI elements (will be set later)
@@ -306,23 +360,6 @@ def main_page():
             if output_text:
                 output_text.set_visibility(True)
                 output_text.value = bradgards_decoded['value']
-            return
-
-        # Rune decode is interactive via on-screen keyboard
-        if selected_cipher['value'] == 'runes' and not is_encoding['value']:
-            rune_preview = rune_cipher(runes_decoded['value'], encode=True)
-            if input_html:
-                input_html.set_visibility(True)
-                input_html.set_content(
-                    '<div style="font-size: 2rem; line-height:1.6; white-space: pre-wrap;">'
-                    f'{rune_preview}'
-                    '</div>'
-                )
-            if output_html:
-                output_html.set_visibility(False)
-            if output_text:
-                output_text.set_visibility(True)
-                output_text.value = runes_decoded['value']
             return
 
         # Brädgård encode preview should match export layout (same chars per row)
@@ -412,16 +449,54 @@ def main_page():
         if ref_icon:
             ref_icon.name = cipher_config['icon']
         if ref_desc:
-            ref_desc.content = cipher_config.get('full_description', '')
+            description = cipher_config.get('full_description', '')
+            english_name = ENGLISH_CIPHER_NAMES.get(selected_cipher['value'])
+            if english_name:
+                description += f'\n\n🇬🇧 På engelska: {english_name}.'
+            ref_desc.content = description
         if ref_content:
-            if selected_cipher['value'] == 'bradgards':
-                ref_content.content = build_bradgards_reference_html()
+            if selected_cipher['value'] == 'scout':
+                ref_content.content = build_scout_reference_html()
+            elif selected_cipher['value'] == 'bradgards':
+                ref_content.content = build_bradgards_reference_html(include_example=True)
+            elif selected_cipher['value'] == 'bacon':
+                ref_content.content = build_bacon_reference_html()
             else:
                 ref_content.content = cipher_config.get('reference', '')
         process_text()
 
-    def build_bradgards_reference_html():
+    def build_scout_reference_html():
+        """Build SCOUT-scout key reference with optional SVG asset."""
+        if KEY_SCOUTSCOUT_SVG:
+            return (
+                '<div class="scout-key-reference" '
+                'style="border:1px solid var(--rp-highlight-med);border-radius:10px;'
+                'padding:12px;background:var(--rp-surface);">'
+                f'{KEY_SCOUTSCOUT_SVG}'
+                '</div>'
+            )
+        return CIPHERS['scout'].get('reference', '')
+
+    def build_bradgards_reference_html(include_example=True):
         """Build Brädgård reference table using the same SVG symbols as decode input."""
+        if KEY_PIGPEN_SVG:
+            parts = [
+                '<div class="pigpen-key-reference" '
+                'style="border:1px solid var(--rp-highlight-med);border-radius:10px;'
+                'padding:12px;background:var(--rp-surface);">',
+                f'{KEY_PIGPEN_SVG}',
+            ]
+            if include_example and EX_PIGPEN_SVG:
+                parts.extend([
+                    '<div style="margin-top:14px;font-weight:700;color:var(--rp-iris);">Exempel</div>'
+                    '<div style="margin-top:4px;">Texten "Hej på dig scout" blir:</div>'
+                    '<div class="pigpen-key-example" style="margin-top:8px;">',
+                    f'{EX_PIGPEN_SVG}',
+                    '</div>',
+                ])
+            parts.append('</div>')
+            return ''.join(parts)
+
         grids = [
             ('Grid 1 (ingen prick)', [['A', 'B', 'C'], ['D', 'E', 'F'], ['G', 'H', 'I']]),
             ('Grid 2 (en prick)', [['J', 'K', 'L'], ['M', 'N', 'O'], ['P', 'R', 'S']]),
@@ -458,15 +533,73 @@ def main_page():
             'Samma symboler används i avkodningsinmatningen. Q och W ingår inte.'
             '</div>'
         )
+
+    def build_bacon_reference_html():
+        """Build Bacon reference with optional hidden-text SVG example."""
+        base_reference = CIPHERS['bacon'].get('reference', '')
+        if not EX_BACON_SVG:
+            return base_reference
+
+        return (
+            f'{base_reference}'
+            '<div style="margin-top:14px;font-weight:700;color:var(--rp-iris);">'
+            'Exempel (SVG): göm Bacons chiffer i text'
+            '</div>'
+            '<div style="margin-top:4px;">  Hemliga texten: "HEMLIGT"'
+            '</div>'
+            '<div style="margin-top:4px;">'
+            'Text att dölja i: Scouting grundades 1907 då Robert Baden-Powell ...'  
+            '</div>'
+            '<div class="bacon-key-example" style="margin-top:8px;">'
+            f'{EX_BACON_SVG}'
+            '</div>'
+        )
     
     def update_shift(value):
         """Update Caesar shift value"""
-        caesar_shift['value'] = int(value)
-        shift_label = ui_refs.get('shift_label')
-        if shift_label:
-            sign = '+' if caesar_shift['value'] >= 0 else ''
-            shift_label.text = f'{sign}{caesar_shift["value"]}'
+        if is_syncing_caesar['value']:
+            return
+        sync_caesar_shift(value, source='main')
+
+    def update_key_shift(value):
+        """Update Caesar shift from key-generation slider."""
+        if is_syncing_caesar['value']:
+            return
+        sync_caesar_shift(value, source='key')
+
+    def sync_caesar_shift(value, source='main'):
+        """Keep Caesar shift synchronized across both slider controls."""
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = caesar_shift['value']
+
+        parsed = max(-13, min(14, parsed))
+        caesar_shift['value'] = parsed
+        sign = '+' if parsed >= 0 else ''
+
+        is_syncing_caesar['value'] = True
+        try:
+            shift_label = ui_refs.get('shift_label')
+            if shift_label:
+                shift_label.text = f'{sign}{parsed}'
+
+            key_shift_label = ui_refs.get('key_caesar_shift_label')
+            if key_shift_label:
+                key_shift_label.text = f'{sign}{parsed}'
+
+            main_slider = ui_refs.get('shift_slider')
+            if main_slider and source != 'main' and main_slider.value != parsed:
+                main_slider.value = parsed
+
+            key_slider = ui_refs.get('key_caesar_shift')
+            if key_slider and source != 'key' and key_slider.value != parsed:
+                key_slider.value = parsed
+        finally:
+            is_syncing_caesar['value'] = False
+
         process_text()
+        update_key_preview()
 
     def build_caesar_reference_html(shift):
         """Build Caesar key table for a specific shift."""
@@ -490,8 +623,10 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
     def get_key_reference_html(cipher_id, caesar_key_shift):
         """Get key reference content for selected cipher."""
+        if cipher_id == 'scout':
+            return build_scout_reference_html()
         if cipher_id == 'bradgards':
-            return build_bradgards_reference_html()
+            return build_bradgards_reference_html(include_example=False)
         if cipher_id == 'caesar':
             return build_caesar_reference_html(caesar_key_shift)
         return CIPHERS[cipher_id].get('reference', '')
@@ -500,18 +635,17 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         """Update key preview content based on currently selected cipher."""
         key_preview = ui_refs.get('key_preview_html')
         key_shift_row = ui_refs.get('key_caesar_shift_row')
-        key_shift_input = ui_refs.get('key_caesar_shift')
+        key_shift_label = ui_refs.get('key_caesar_shift_label')
 
         if not key_preview:
             return
 
         cipher_id = selected_cipher['value']
-        shift = 4
-        if key_shift_input and key_shift_input.value is not None:
-            try:
-                shift = int(key_shift_input.value)
-            except (TypeError, ValueError):
-                shift = 4
+        shift = caesar_shift['value']
+
+        if key_shift_label:
+            sign = '+' if shift >= 0 else ''
+            key_shift_label.text = f'{sign}{shift}'
 
         if key_shift_row:
             key_shift_row.set_visibility(cipher_id == 'caesar')
@@ -594,15 +728,8 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
     def get_key_selection():
         """Resolve currently selected cipher and shift for key generation."""
-        key_shift_input = ui_refs.get('key_caesar_shift')
-
         cipher_id = selected_cipher['value']
-        shift = 4
-        if key_shift_input and key_shift_input.value is not None:
-            try:
-                shift = int(key_shift_input.value)
-            except (TypeError, ValueError):
-                shift = 4
+        shift = caesar_shift['value']
 
         return cipher_id, shift
 
@@ -680,18 +807,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             process_text()
             return
 
-        if selected_cipher['value'] == 'runes' and mode_toggle and inp:
-            if is_encoding['value']:
-                runes_decoded['value'] = inp.value or ''
-                is_encoding['value'] = False
-            else:
-                inp.value = runes_decoded['value']
-                is_encoding['value'] = True
-            mode_toggle.value = 'encode' if is_encoding['value'] else 'decode'
-            update_mode_ui()
-            process_text()
-            return
-
         if inp and out and mode_toggle:
             inp.value, out.value = out.value or '', inp.value or ''
             is_encoding['value'] = not is_encoding['value']
@@ -713,7 +828,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         if out:
             out.value = ''
         bradgards_decoded['value'] = ''
-        runes_decoded['value'] = ''
 
     def append_bradgards_letter(letter):
         """Append a decoded letter in interactive Brädgård mode"""
@@ -728,21 +842,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
     def bradgards_clear():
         """Clear decoded text in interactive Brädgård mode"""
         bradgards_decoded['value'] = ''
-        process_text()
-
-    def append_rune_letter(letter):
-        """Append a decoded letter in interactive Rune mode"""
-        runes_decoded['value'] += letter
-        process_text()
-
-    def rune_backspace():
-        """Delete one character in interactive Rune mode"""
-        runes_decoded['value'] = runes_decoded['value'][:-1]
-        process_text()
-
-    def rune_clear():
-        """Clear decoded text in interactive Rune mode"""
-        runes_decoded['value'] = ''
         process_text()
 
     def get_chars_per_row():
@@ -826,8 +925,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
     def update_mode_ui():
         """Show/hide controls for special interactive decode modes"""
         is_bradgards_decode = selected_cipher['value'] == 'bradgards' and not is_encoding['value']
-        is_runes_decode = selected_cipher['value'] == 'runes' and not is_encoding['value']
-        is_interactive_decode = is_bradgards_decode or is_runes_decode
+        is_interactive_decode = is_bradgards_decode
         is_bradgards_encode = selected_cipher['value'] == 'bradgards' and is_encoding['value']
 
         input_column = ui_refs.get('input_column')
@@ -835,7 +933,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         input_html = ui_refs.get('input_html')
         swap_column = ui_refs.get('swap_column')
         decode_panel = ui_refs.get('bradgards_decode_panel')
-        runes_decode_panel = ui_refs.get('runes_decode_panel')
         export_panel = ui_refs.get('bradgards_export_panel')
 
         if input_column:
@@ -848,8 +945,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             swap_column.set_visibility(True)
         if decode_panel:
             decode_panel.set_visibility(is_bradgards_decode)
-        if runes_decode_panel:
-            runes_decode_panel.set_visibility(is_runes_decode)
         if export_panel:
             export_panel.set_visibility(is_bradgards_encode)
     
@@ -883,6 +978,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             --rp-highlight-low: #f4ede8;
             --rp-highlight-med: #dfdad9;
             --rp-highlight-high: #cecacd;
+            --q-primary: #286983;
         }
         
         /* Rosé Pine (Dark) */
@@ -902,6 +998,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             --rp-highlight-low: #21202e;
             --rp-highlight-med: #403d52;
             --rp-highlight-high: #524f67;
+            --q-primary: #31748f;
         }
         
         body {
@@ -909,6 +1006,13 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             background-color: var(--rp-base) !important;
             color: var(--rp-text) !important;
             transition: background-color 0.3s, color 0.3s;
+            --svg-accent-color: var(--rp-love);
+        }
+
+        @supports (color: color-mix(in oklab, black, white)) {
+            body {
+                --svg-accent-color: color-mix(in oklab, currentColor 60%, var(--rp-love) 40%);
+            }
         }
         
         .nicegui-content {
@@ -916,7 +1020,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
         
         .rp-title {
-            color: var(--rp-iris) !important;
+            color: var(--rp-foam) !important;
         }
         
         .rp-subtitle {
@@ -935,18 +1039,24 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             transition: all 0.2s ease;
             cursor: pointer;
             background-color: var(--rp-surface) !important;
-            border: 1px solid var(--rp-highlight-med) !important;
+            border: 2px solid var(--rp-highlight-med) !important;
+            min-height: 132px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
         
         .cipher-card:hover {
-            transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             border-color: var(--rp-foam) !important;
         }
         
         .cipher-card.selected {
-            border: 3px solid var(--rp-iris) !important;
+            border-color: var(--rp-iris) !important;
             background-color: var(--rp-highlight-low) !important;
+            box-shadow: 0 0 0 1px var(--rp-iris) inset;
         }
         
         .rp-card {
@@ -964,7 +1074,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
         
         .q-field--outlined.q-field--focused .q-field__control:before {
-            border-color: var(--rp-iris) !important;
+            border-color: var(--rp-foam) !important;
         }
         
         .q-textarea .q-field__native {
@@ -974,6 +1084,33 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         .q-btn--outline {
             border-color: var(--rp-highlight-high) !important;
             color: var(--rp-text) !important;
+        }
+
+        /* Ensure Quasar color=primary maps to Rose Pine pine in all button variants. */
+        .q-btn.text-primary,
+        .text-primary {
+            color: var(--rp-pine) !important;
+        }
+
+        .q-btn--outline.text-primary {
+            color: var(--rp-pine) !important;
+            border-color: var(--rp-pine) !important;
+        }
+
+        .q-btn--outline.text-primary:before {
+            border-color: var(--rp-pine) !important;
+        }
+
+        .q-btn.text-primary .q-btn__content,
+        .q-btn--outline.text-primary .q-btn__content,
+        .q-btn.text-primary .q-btn__content .q-icon,
+        .q-btn--outline.text-primary .q-btn__content .q-icon {
+            color: var(--rp-pine) !important;
+        }
+
+        .q-btn--outline.text-primary .q-icon,
+        .q-btn.text-primary .q-icon {
+            color: var(--rp-pine) !important;
         }
         
         .q-btn--outline:hover {
@@ -989,7 +1126,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
         
         .q-tab--active {
-            color: var(--rp-iris) !important;
+            color: var(--rp-foam) !important;
         }
         
         .q-tab-panel {
@@ -1004,7 +1141,20 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
         
         .q-toggle__inner--truthy {
-            color: var(--rp-iris) !important;
+            color: var(--rp-foam) !important;
+        }
+
+        .theme-mode-switch .q-toggle__inner--truthy {
+            color: var(--rp-pine) !important;
+        }
+
+        .theme-mode-switch .q-toggle__inner--truthy .q-toggle__thumb:after {
+            background: currentColor !important;
+        }
+
+        .theme-mode-switch .q-toggle__inner--truthy .q-toggle__track {
+            color: var(--rp-pine) !important;
+            opacity: 0.4 !important;
         }
         
         .q-slider__track {
@@ -1012,7 +1162,15 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
         
         .q-slider__selection {
-            background-color: var(--rp-iris) !important;
+            background-color: var(--rp-pine) !important;
+        }
+
+        .q-slider__thumb {
+            color: var(--rp-foam) !important;
+        }
+
+        .q-slider__thumb path {
+            fill: currentColor !important;
         }
         
         .theme-toggle {
@@ -1039,7 +1197,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
 
         .theme-icon.active {
-            color: var(--rp-iris);
+            color: var(--rp-foam);
         }
 
         .theme-label {
@@ -1050,11 +1208,28 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             text-transform: uppercase;
         }
 
+        .title-logo {
+            color: var(--rp-pine);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 0;
+        }
+
+        .title-logo svg {
+            display: block;
+            width: 54px;
+            height: 54px;
+            color: inherit;
+            fill: currentColor;
+        }
+
         .mode-toggle {
             border: 1px solid var(--rp-highlight-med);
             border-radius: 12px;
             overflow: hidden;
             background: var(--rp-overlay);
+            --q-primary: var(--rp-pine);
         }
 
         .mode-toggle .q-btn {
@@ -1080,9 +1255,20 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         }
 
         .mode-toggle .q-btn.q-btn--active {
-            background: var(--rp-iris) !important;
+            background: var(--rp-foam) !important;
             color: var(--rp-base) !important;
             text-shadow: none;
+            border-color: var(--rp-foam) !important;
+        }
+
+        .mode-toggle .q-btn[aria-pressed="true"] {
+            background: var(--rp-foam) !important;
+            color: var(--rp-base) !important;
+            border-color: var(--rp-foam) !important;
+        }
+
+        .mode-toggle .q-btn .q-focus-helper {
+            background: transparent !important;
         }
 
         body.dark .mode-toggle .q-btn.q-btn--active {
@@ -1093,17 +1279,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             font-size: 1.1rem !important;
             line-height: 1.6 !important;
             letter-spacing: 0.01em;
-        }
-
-        .rune-tile {
-            min-width: 74px;
-            min-height: 74px;
-            padding: 0.25rem;
-        }
-
-        .rune-glyph {
-            font-size: 2rem;
-            line-height: 1;
         }
 
         .symbol-tile {
@@ -1152,6 +1327,38 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             padding: 12px;
             background: var(--rp-surface);
         }
+
+        .pigpen-key-reference svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+            color: var(--rp-text);
+        }
+
+        .scout-key-reference svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+            color: var(--rp-text);
+        }
+
+        .pigpen-key-example svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+            color: var(--rp-text);
+        }
+
+        .bacon-key-example svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+            color: var(--rp-text);
+        }
     </style>
     <script>
         // Dark mode is always default on load.
@@ -1181,15 +1388,14 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                     sun_icon.classes(add='active')
                     moon_icon.classes(remove='active')
 
-            theme_switch = ui.switch(value=True, on_change=on_theme_change).props('dense color=primary')
+            theme_switch = ui.switch(value=True, on_change=on_theme_change).classes('theme-mode-switch').props('dense color=primary')
             moon_icon = ui.icon('dark_mode').classes('theme-icon active')
             ui.label('Theme').classes('theme-label')
         
         # Header
         with ui.row().classes('items-center gap-4 mb-6'):
-            ui.html('''<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="rp-title">
-                <path d="M12 2C12 2 9 5 9 8c0 1.5.5 2.5 1.5 3.5-1.5.5-3.5 1-3.5 3.5 0 2 1.5 3.5 3.5 3.5-.5 1-.5 2.5.5 3.5h2c1-1 1-2.5.5-3.5 2 0 3.5-1.5 3.5-3.5 0-2.5-2-3-3.5-3.5 1-1 1.5-2 1.5-3.5 0-3-3-6-3-6z"/>
-            </svg>''')
+            ui.html(TITLE_ICON_SVG).classes('title-logo')
+        
             with ui.column().classes('gap-0'):
                 ui.label('ChifferSkiftaren').classes('text-4xl font-bold rp-title')
                 ui.label('Koda och avkoda meddelanden som en scout!').classes('rp-subtitle')
@@ -1206,7 +1412,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                     if cipher_id == 'scout':
                         card.classes(add='selected')
                     
-                    with ui.column().classes('items-center gap-1'):
+                    with ui.column().classes('items-center justify-center text-center w-full h-full gap-1'):
                         ui.icon(cipher_info['icon']).classes('text-2xl')
                         ui.label(cipher_info['name']).classes('text-sm font-bold text-center rp-text')
                         ui.label(cipher_info['description']).classes('text-xs text-center rp-muted')
@@ -1220,6 +1426,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             shift_row.set_visibility(False)  # Hidden by default
             ui.label('Förskjutning:').classes('text-lg font-medium')
             shift_slider = ui.slider(min=-13, max=14, value=3, on_change=lambda e: update_shift(e.value)).classes('w-48')
+            ui_refs['shift_slider'] = shift_slider
             shift_label = ui.label('+3').classes('text-lg font-bold w-12')
             ui_refs['shift_label'] = shift_label
         
@@ -1317,34 +1524,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                     ui.button('Ladda ner SVG', on_click=download_bradgards_svg).props('outline color=primary')
                     ui.button('Ladda ner PNG', on_click=download_bradgards_png).props('outline color=primary')
 
-            # Rune decode panel (visible in Runor + Avkoda)
-            with ui.column().classes('w-full mt-4') as runes_decode_panel:
-                ui_refs['runes_decode_panel'] = runes_decode_panel
-                runes_decode_panel.set_visibility(False)
-
-                ui.label('Avkoda Runor: klicka runtecknen för att skriva meddelandet').classes('text-md font-semibold mb-2 rp-text')
-
-                rune_rows = [
-                    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
-                    ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'],
-                    ['U', 'V', 'W', 'X', 'Y', 'Z', 'Å', 'Ä', 'Ö'],
-                ]
-
-                with ui.card().classes('rp-card p-3'):
-                    for row in rune_rows:
-                        with ui.row().classes('gap-2 mb-2 flex-wrap'):
-                            for letter in row:
-                                rune_symbol = rune_cipher(letter, encode=True)
-                                with ui.column().classes('items-center gap-0'):
-                                    tile = ui.html(f'<div class="rune-glyph">{rune_symbol}</div>').classes('symbol-tile rune-tile')
-                                    tile.on('click', lambda e, l=letter: append_rune_letter(l))
-                                    ui.label(letter).classes('symbol-label')
-
-                with ui.row().classes('gap-2 mt-3'):
-                    ui.button('Mellanslag', on_click=lambda: append_rune_letter(' ')).props('outline color=primary')
-                    ui.button('⌫ Backa', on_click=rune_backspace).props('outline color=primary')
-                    ui.button('Rensa', on_click=rune_clear).props('outline color=grey')
-        
         # Action buttons
         with ui.row().classes('gap-4 mt-4'):
             ui.button('Kopiera', on_click=copy_output, icon='content_copy').props('outline color=primary')
@@ -1361,15 +1540,16 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             with ui.row().classes('items-center gap-3 flex-wrap mb-2') as key_caesar_shift_row:
                 ui_refs['key_caesar_shift_row'] = key_caesar_shift_row
                 ui.label('Caesar-förskjutning:').classes('rp-text')
-                key_caesar_shift = ui.number(
-                    value=4,
-                    min=-28,
-                    max=28,
-                    step=1,
-                    on_change=lambda e: update_key_preview(),
-                ).classes('w-32').props('outlined dense')
+                key_caesar_shift = ui.slider(
+                    min=-13,
+                    max=14,
+                    value=3,
+                    on_change=lambda e: update_key_shift(e.value),
+                ).classes('w-48')
                 ui_refs['key_caesar_shift'] = key_caesar_shift
-                ui.button('+4', on_click=lambda: (setattr(key_caesar_shift, 'value', 4), update_key_preview())).props('outline color=primary')
+                key_caesar_shift_label = ui.label('+3').classes('text-sm font-bold w-12 rp-text')
+                ui_refs['key_caesar_shift_label'] = key_caesar_shift_label
+                ui.button('+4', on_click=lambda: sync_caesar_shift(4, source='button')).props('outline color=primary')
 
             key_preview_html = ui.html('').classes('w-full key-preview rp-text')
             ui_refs['key_preview_html'] = key_preview_html
@@ -1388,13 +1568,13 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             ui_refs['ref_desc'] = ref_desc
             
             ui.label('Referenstabell:').classes('text-lg font-semibold mb-2 rp-text')
-            ref_content = ui.html(initial_cipher.get('reference', '')).classes('rp-text')
+            ref_content = ui.html(build_scout_reference_html()).classes('rp-text')
             ui_refs['ref_content'] = ref_content
         
         # Footer
         ui.separator().classes('mt-8')
-        ui.label('ChifferSkiftaren - Gjord för scouter och likasinnade, av Gustaf Kylberg').classes('text-gray-400 text-sm mt-2')
-        ui.label(f'Version {APP_VERSION}').classes('text-gray-500 text-xs')
+        ui.label('ChifferSkiftaren - Gjord för scouter och likasinnade, av Gustaf Kylberg').classes('rp-muted text-sm mt-2')
+        ui.label(f'Version {APP_VERSION}').classes('rp-muted text-xs')
         ui.html('''
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
                 <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">

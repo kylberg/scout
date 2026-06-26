@@ -496,52 +496,6 @@ def morse_cipher(text, encode=True):
         return ' '.join(result)
 
 
-def rune_cipher(text, encode=True):
-    """
-    Runchiffer based on Unicode runes.
-
-    This uses a practical one-to-one mapping for A-Z, Å, Ä, Ö so it can be
-    encoded/decoded reliably in the GUI and with on-screen keyboard input.
-
-    Args:
-        text (str): Text to encode/decode
-        encode (bool): True for encoding, False for decoding
-
-    Returns:
-        str: Encoded/decoded text
-    """
-    rune_map = {
-        'A': 'ᚨ', 'B': 'ᛒ', 'C': 'ᚲ', 'D': 'ᛞ', 'E': 'ᛖ',
-        'F': 'ᚠ', 'G': 'ᚷ', 'H': 'ᚺ', 'I': 'ᛁ', 'J': 'ᛃ',
-        'K': 'ᚴ', 'L': 'ᛚ', 'M': 'ᛗ', 'N': 'ᚾ', 'O': 'ᛟ',
-        'P': 'ᛈ', 'Q': 'ᛩ', 'R': 'ᚱ', 'S': 'ᛊ', 'T': 'ᛏ',
-        'U': 'ᚢ', 'V': 'ᚡ', 'W': 'ᚹ', 'X': 'ᛪ', 'Y': 'ᛦ',
-        'Z': 'ᛉ', 'Å': 'ᚫ', 'Ä': 'ᛅ', 'Ö': 'ᚯ'
-    }
-
-    if encode:
-        result = []
-        for char in text.upper():
-            if char in rune_map:
-                result.append(rune_map[char])
-            elif char == ' ':
-                result.append(' ')
-            else:
-                result.append(char)
-        return ''.join(result)
-
-    reverse_map = {v: k for k, v in rune_map.items()}
-    result = []
-    for char in text:
-        if char in reverse_map:
-            result.append(reverse_map[char])
-        elif char == ' ':
-            result.append(' ')
-        else:
-            result.append(char)
-    return ''.join(result)
-
-
 def caesar_cipher(text, shift=3, encode=True):
     """
     Förskjutningschiffer / Caesar cipher
