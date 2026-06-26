@@ -882,6 +882,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             inp.value, out.value = out.value or '', inp.value or ''
 
         is_encoding['value'] = target_is_encoding
+        log_event('mode_changed', event_kategori='encode' if target_is_encoding else 'decode')
 
         if sync_toggle and mode_toggle:
             desired = 'encode' if target_is_encoding else 'decode'
@@ -901,12 +902,16 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
     
     def swap_texts():
         """Swap input and output"""
+        cipher_name = CIPHERS.get(selected_cipher['value'], {}).get('name', selected_cipher['value'])
+        log_event('swap_texts', event_kategori=cipher_name)
         apply_mode_change(not is_encoding['value'], sync_toggle=True)
     
     def copy_output():
         """Copy output to clipboard"""
         out = ui_refs.get('output')
         if out and out.value:
+            cipher_name = CIPHERS.get(selected_cipher['value'], {}).get('name', selected_cipher['value'])
+            log_event('copy_output', event_kategori=cipher_name)
             ui.run_javascript(f'navigator.clipboard.writeText({repr(out.value)})')
             ui.notify('Kopierat till urklipp!', type='positive')
     
@@ -1074,6 +1079,10 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                 document.body.classList.remove('dark');
             }}
         ''')
+
+    def log_theme_used(is_dark: bool):
+        """Log currently active theme value for aggregate usage analytics."""
+        log_event('theme_used', event_kategori='dark' if is_dark else 'light')
     
     # Rosé Pine themed styling
     ui.add_head_html('''
@@ -1556,6 +1565,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                 else:
                     is_dark = str(e.value).lower() == 'true'
                 set_theme(is_dark)
+                log_theme_used(is_dark)
                 if is_dark:
                     moon_icon.classes(add='active')
                     sun_icon.classes(remove='active')
@@ -1769,7 +1779,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
             ref_ascii_button = ui.button(
                 'Välj ASCII',
-                on_click=lambda: select_cipher('ascii'),
+                on_click=lambda: (log_event('cta_select_ascii', event_kategori='reference_section'), select_cipher('ascii')),
                 icon='code',
             ).props('outline color=primary').classes('mt-2')
             ref_ascii_button.set_visibility(False)
@@ -1813,6 +1823,8 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
         # Initialize mode-specific UI visibility
         update_mode_ui()
+        # Log the default effective theme for sessions without any theme toggles.
+        ui.timer(0.6, lambda: log_theme_used(True), once=True)
 
 
 if __name__ in {'__main__', '__mp_main__'}:
