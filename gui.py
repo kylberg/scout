@@ -1512,6 +1512,16 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
     </script>
     ''')
     
+    # Hämta Umami-ID från systemet. Finns det inte blir variabeln None.
+    umami_id = os.environ.get("UMAMI_WEBSITE_ID")
+
+    # Injicera bara koden om variabeln faktiskt existerar (dvs. i produktion)
+    if umami_id:
+        ui.add_head_html(
+            f'<script defer src="https://cloud.umami.is/script.js" data-website-id="{umami_id}"></script>'
+        )
+
+
     # Main container
     with ui.column().classes('w-full items-center p-4 min-h-screen'):
         # Theme toggle switch
