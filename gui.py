@@ -445,7 +445,7 @@ def main_page():
         selected_cipher['value'] = cipher_id
         if previous_cipher_id != cipher_id:
             cipher_name = CIPHERS.get(cipher_id, {}).get('name', cipher_id)
-            log_event(cipher_name, event_kategori='cipher_selection')
+            log_event('cipher_selected', event_kategori=cipher_name)
         for cid, card in cipher_cards.items():
             if cid == cipher_id:
                 card.classes(add='selected')
@@ -814,7 +814,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
         html, base_filename = build_key_document_html(cipher_id, shift)
 
-        log_event(base_filename, event_kategori="download_key_html")
+        log_event('download_key_html', event_kategori=base_filename)
 
         html_js = json.dumps(html)
         filename_js = json.dumps(f'{base_filename}.html')
@@ -854,7 +854,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             URL.revokeObjectURL(url);
         ''')
         ui.notify('Webbläsaren öppnar utskrift: välj "Spara som PDF" där.', type='info')
-        log_event(base_filename, event_kategori="download_key_pdf")
+        log_event('download_key_pdf', event_kategori=base_filename)
     def apply_mode_change(target_is_encoding, sync_toggle=False):
         """Apply mode change and move content so fields stay intuitive."""
         current_is_encoding = is_encoding['value']
