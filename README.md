@@ -31,6 +31,17 @@ python3 gui.py
 
 Öppna sedan webbläsaren på `http://localhost:8080`
 
+### Appen driftas online
+
+Under sommaren 2026 provar jag att drifta appen på Railway.app på servrar i Amsterdam. 
+
+-> Surfa till: [scout.kylberg.org](https://scout.kylberg.org)
+
+### Screenshots of v. 0.2.1
+|Dark theme|Light theme|
+|--|--|
+|![Screenshot](/resources/GUI_screenshot_dark_v.0.2.1.png)| ![Screenshot](/resources/GUI_screenshot_light_v.0.2.1.png)|
+
 ## Chiffer-beskrivningar
 
 ### SCOUT-scout
