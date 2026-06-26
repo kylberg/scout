@@ -1729,7 +1729,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             ui_refs['ref_content'] = ref_content
 
             ref_ascii_tip = ui.label(
-                'Tips: Om du är trött på att inte kunna koda alla tecken, prova ASCII-chiffer!!'
+                'Tips: Om du är trött på att inte kunna koda alla tecken, prova ASCII!!'
             ).classes('mt-3 rp-title text-sm')
             ref_ascii_tip.set_visibility(False)
             ui_refs['ref_ascii_tip'] = ref_ascii_tip

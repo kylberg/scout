@@ -3,9 +3,9 @@
 <!-- version: 0.2.1 -->
 Version: **0.2.1**
 
-Koda och avkoda meddelanden som en scout! Ett Python-baserat verktyg för klassiska scout-chiffer med stöd för det svenska alfabetet.
+Koda och avkoda meddelanden som en scout! Ett Python-baserat verktyg för klassiska scout-chiffer med stöd för det svenska alfabetet (så långt chiffren tillåter).
 
-## Funktioner
+## Chiffer
 
 Appen stöder följande chiffer:
 
@@ -33,7 +33,7 @@ python3 gui.py
 
 ### Appen driftas online
 
-Under sommaren 2026 provar jag att drifta appen på Railway.app på servrar i Amsterdam. 
+Under sommaren 2026 provar jag att drifta appen via [Railway.app](https://railway.app) på servrar i Amsterdam 🇳🇱. Tillgänglighet garanteras ej då det är ett hobbyprojekt. 
 
 -> Surfa till: [scout.kylberg.org](https://scout.kylberg.org)
 
@@ -63,7 +63,7 @@ Använder ett 5×5 rutnät där kolumnerna heter SCOUT (versaler) och raderna he
    └────┴────┴────┴────┴────┘
 ```
 
-**Exempel:** `HEJA` → `OcTsTcSs`
+**Exempel:** `HEJA` → `OcTsTcSs` eller varför inte `SCOUT` → `OuOsToTuUu`
 
 Bokstäverna Q, W, X, Z ingår inte i detta chiffer.
 
@@ -120,7 +120,7 @@ python3 test_ciphers.py
 
 ## Licens
 
-MIT License — se [LICENSE](LICENSE) för detaljer.
+MIT License: se [LICENSE](LICENSE) för detaljer.
 
 ---
 
