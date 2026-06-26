@@ -37,6 +37,7 @@ def load_app_version(default='0.1.0'):
 APP_VERSION = load_app_version()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(BASE_DIR, 'resources')
+APP_ONLINE_URL = 'https://scout.kylberg.org'
 
 if os.path.isdir(RESOURCES_DIR):
     app.add_static_files('/resources', RESOURCES_DIR)
@@ -129,7 +130,7 @@ Exempel: HEJA → OcTsTcSs</pre>'''
     },
     'bradgards': {
         'name': 'Brädgård',
-        'description': 'Rutchiffer (SVG)',
+        'description': 'Rutchiffer',
         'icon': 'apps',
         'function': bradgards_svg_cipher,
         'html_output': True,
@@ -216,7 +217,7 @@ Mellanslag kodas som /</pre>'''
     },
     'morse': {
         'name': 'Morse',
-        'description': 'Morsekod',
+        'description': '--- -.-',
         'icon': 'radio',
         'function': morse_cipher,
         'full_description': '''**Morsekod** är ett kommunikationssystem uppfunnet av Samuel Morse på 1830-talet. 
@@ -256,10 +257,10 @@ Exempel: "HEJ 2" → "08 05 10 - #2"</pre>'''
     },
     'ascii': {
         'name': 'ASCII',
-        'description': 'ASCII-värden',
+        'description': 'ASCII-encoding',
         'icon': 'code',
         'function': ascii_cipher,
-        'full_description': '''**ASCII-chiffer** kodar varje tecken som dess ASCII-värde (American Standard Code 
+        'full_description': '''<i>Är du trött på att sifferchiffer inte kan koda alla tecken? - använd ASCII! </i> <br> <br> **ASCII-chiffer** kodar varje tecken som dess ASCII-värde (American Standard Code 
 for Information Interchange). Gemener, versaler och specialtecken får olika koder. 
 Mer tekniskt chiffer som passar äldre scouter med datorintresse.''',
         'reference': '''<pre style="font-family: monospace; font-size: 13px; line-height: 1.6;">
@@ -278,7 +279,7 @@ Exempel: "Hi!" → "72 105 33"</pre>'''
     },
     'bacon': {
         'name': 'Bacons chiffer',
-        'description': 'Bakas chiffer (a/b)',
+        'description': 'aaaab - babbb',
         'icon': 'functions',
         'function': bacon_cipher,
         'full_description': '''**Bacons chiffer** uppfanns av Francis Bacon på 1605 för hemlig kommunikation. Varje bokstav kodas som en sekvens av exakt 5 tecken: antingen 'a' eller 'b'. Systemet är baserat på 5-bitars binär representation (00000-11001) för alla 26 engelska bokstäver.
@@ -324,6 +325,7 @@ def main_page():
     selected_cipher = {'value': 'scout'}
     is_encoding = {'value': True}
     caesar_shift = {'value': 3}
+    bradgards_chars_per_row = {'value': 12}
     is_syncing_caesar = {'value': False}
     bradgards_decoded = {'value': ''}
     cipher_cards = {}
@@ -350,7 +352,7 @@ def main_page():
             decode_preview = bradgards_svg_grid(
                 bradgards_decoded['value'],
                 chars_per_row=get_chars_per_row(),
-                cell_size=36,
+                cell_size=28,
             )
             if input_html:
                 input_html.set_visibility(True)
@@ -374,7 +376,7 @@ def main_page():
             svg_grid = bradgards_svg_grid(
                 text,
                 chars_per_row=get_chars_per_row(),
-                cell_size=36,
+                cell_size=28,
             )
             if output_text:
                 output_text.set_visibility(False)
@@ -430,6 +432,10 @@ def main_page():
         if shift_row:
             shift_row.set_visibility(cipher_id == 'caesar')
 
+        bradgards_chars_row = ui_refs.get('bradgards_chars_row')
+        if bradgards_chars_row:
+            bradgards_chars_row.set_visibility(cipher_id == 'bradgards')
+
         update_key_preview()
 
         update_mode_ui()
@@ -443,6 +449,8 @@ def main_page():
         ref_title = ui_refs.get('ref_title')
         ref_desc = ui_refs.get('ref_desc')
         ref_content = ui_refs.get('ref_content')
+        ref_ascii_tip = ui_refs.get('ref_ascii_tip')
+        ref_ascii_button = ui_refs.get('ref_ascii_button')
         if ref_title:
             ref_title.text = cipher_config['name']
         ref_icon = ui_refs.get('ref_icon')
@@ -463,6 +471,12 @@ def main_page():
                 ref_content.content = build_bacon_reference_html()
             else:
                 ref_content.content = cipher_config.get('reference', '')
+
+        show_ascii_tip = selected_cipher['value'] in {'alphanumeric', 'thermometer'}
+        if ref_ascii_tip:
+            ref_ascii_tip.set_visibility(show_ascii_tip)
+        if ref_ascii_button:
+            ref_ascii_button.set_visibility(show_ascii_tip)
         process_text()
 
     def build_scout_reference_html():
@@ -657,6 +671,12 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         github_logo = '''<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
 </svg>'''
+        web_logo = '''<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="2" y1="12" x2="22" y2="12"/>
+    <path d="M12 2a15 15 0 0 1 0 20"/>
+    <path d="M12 2a15 15 0 0 0 0 20"/>
+    </svg>'''
 
         cipher_config = CIPHERS[cipher_id]
         title = cipher_config['name']
@@ -696,6 +716,13 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             gap: 6px;
             text-decoration: none;
         }}
+        .links {{
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }}
         pre {{
             background: #f2e9e1;
             border-radius: 8px;
@@ -709,10 +736,16 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         <h1>Nyckel: {title}</h1>
         <div class="sub">{subtitle}</div>
         {key_content}
-        <a class="repo" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
-            {github_logo}
-            github.com/kylberg/scout
-        </a>
+        <div class="links">
+            <a class="repo" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
+                {github_logo}
+                github.com/kylberg/scout
+            </a>
+            <a class="repo" href="{APP_ONLINE_URL}" target="_blank" rel="noopener noreferrer">
+                {web_logo}
+                scout.kylberg.org
+            </a>
+        </div>
     </div>
 </body>
 </html>'''
@@ -756,9 +789,8 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         ''')
 
     def download_key_pdf():
-        """Open printable key in a new tab and trigger print dialog (save as PDF)."""
+        """Open printable key and trigger print dialog for Save as PDF."""
         cipher_id, shift = get_key_selection()
-
         html, base_filename = build_key_document_html(cipher_id, shift)
         html_js = json.dumps(html)
         title_js = json.dumps(base_filename)
@@ -777,40 +809,55 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             }}
             URL.revokeObjectURL(url);
         ''')
-        ui.notify('Spara som PDF i utskriftsdialogen.', type='info')
+        ui.notify('Webbläsaren öppnar utskrift: välj "Spara som PDF" där.', type='info')
     
-    def toggle_mode(value):
-        """Toggle encode/decode mode"""
-        if isinstance(value, bool):
-            is_encoding['value'] = value
-        else:
-            is_encoding['value'] = (value == 'encode')
-        update_mode_ui()
-        process_text()
-    
-    def swap_texts():
-        """Swap input and output"""
-        inp = ui_refs.get('input')
-        out = ui_refs.get('output')
+    def apply_mode_change(target_is_encoding, sync_toggle=False):
+        """Apply mode change and move content so fields stay intuitive."""
+        current_is_encoding = is_encoding['value']
         mode_toggle = ui_refs.get('mode_toggle')
 
-        # Interactive ciphers need special swap behavior
-        if selected_cipher['value'] == 'bradgards' and mode_toggle and inp:
-            if is_encoding['value']:
-                bradgards_decoded['value'] = inp.value or ''
-                is_encoding['value'] = False
-            else:
-                inp.value = bradgards_decoded['value']
-                is_encoding['value'] = True
-            mode_toggle.value = 'encode' if is_encoding['value'] else 'decode'
+        if target_is_encoding == current_is_encoding:
+            if sync_toggle and mode_toggle:
+                desired = 'encode' if target_is_encoding else 'decode'
+                if mode_toggle.value != desired:
+                    mode_toggle.value = desired
             update_mode_ui()
             process_text()
             return
 
-        if inp and out and mode_toggle:
+        inp = ui_refs.get('input')
+        out = ui_refs.get('output')
+
+        # Brädgård decode uses interactive symbols, so transfer via decoded buffer.
+        if selected_cipher['value'] == 'bradgards' and inp:
+            if target_is_encoding:
+                inp.value = bradgards_decoded['value']
+            else:
+                bradgards_decoded['value'] = inp.value or ''
+        elif inp and out:
             inp.value, out.value = out.value or '', inp.value or ''
-            is_encoding['value'] = not is_encoding['value']
-            mode_toggle.value = 'encode' if is_encoding['value'] else 'decode'
+
+        is_encoding['value'] = target_is_encoding
+
+        if sync_toggle and mode_toggle:
+            desired = 'encode' if target_is_encoding else 'decode'
+            if mode_toggle.value != desired:
+                mode_toggle.value = desired
+
+        update_mode_ui()
+        process_text()
+
+    def toggle_mode(value):
+        """Toggle encode/decode mode from the mode switch."""
+        if isinstance(value, bool):
+            target_is_encoding = value
+        else:
+            target_is_encoding = (value == 'encode')
+        apply_mode_change(target_is_encoding, sync_toggle=False)
+    
+    def swap_texts():
+        """Swap input and output"""
+        apply_mode_change(not is_encoding['value'], sync_toggle=True)
     
     def copy_output():
         """Copy output to clipboard"""
@@ -845,13 +892,33 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         process_text()
 
     def get_chars_per_row():
-        value = ui_refs.get('chars_per_row')
-        if value and value.value:
+        value = ui_refs.get('chars_per_row_slider')
+        if value and value.value is not None:
             try:
                 return max(1, int(value.value))
             except (ValueError, TypeError):
                 return 12
         return 12
+
+    def update_chars_per_row(value):
+        """Update Brädgård chars-per-row from shared slider."""
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = bradgards_chars_per_row['value']
+
+        parsed = max(1, min(30, parsed))
+        bradgards_chars_per_row['value'] = parsed
+
+        chars_label = ui_refs.get('chars_per_row_label')
+        if chars_label:
+            chars_label.text = str(parsed)
+
+        chars_slider = ui_refs.get('chars_per_row_slider')
+        if chars_slider and chars_slider.value != parsed:
+            chars_slider.value = parsed
+
+        process_text()
 
     def download_bradgards_svg():
         """Download encoded Brädgård as SVG"""
@@ -1442,6 +1509,20 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         
         # Main content area
         with ui.card().classes('w-full max-w-4xl p-4 rp-card'):
+            with ui.row().classes('items-center gap-4 mb-3') as bradgards_chars_row:
+                ui_refs['bradgards_chars_row'] = bradgards_chars_row
+                bradgards_chars_row.set_visibility(False)
+                ui.label('Tecken per rad:').classes('text-lg font-medium')
+                chars_per_row_slider = ui.slider(
+                    min=1,
+                    max=30,
+                    value=7,
+                    on_change=lambda e: update_chars_per_row(e.value),
+                ).classes('w-48')
+                ui_refs['chars_per_row_slider'] = chars_per_row_slider
+                chars_per_row_label = ui.label('12').classes('text-lg font-bold w-12')
+                ui_refs['chars_per_row_label'] = chars_per_row_label
+
             with ui.row().classes('w-full gap-4 items-stretch'):
                 # Input section
                 with ui.column().classes('flex-1') as input_column:
@@ -1497,7 +1578,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                                     with ui.row().classes('gap-2'):
                                         for letter in row:
                                             with ui.column().classes('items-center gap-0'):
-                                                tile = ui.html(bradgards_svg_cipher(letter, encode=True, size=34)).classes('symbol-tile')
+                                                tile = ui.html(bradgards_svg_cipher(letter, encode=True, size=28)).classes('symbol-tile')
                                                 tile.on('click', lambda e, l=letter: append_bradgards_letter(l))
                                                 ui.label(letter).classes('symbol-label')
 
@@ -1513,14 +1594,6 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
 
                 ui.label('Exportera kodad Brädgård som bild').classes('text-md font-semibold rp-text')
                 with ui.row().classes('items-center gap-3 flex-wrap'):
-                    ui.label('Tecken per rad:').classes('rp-text')
-                    chars_per_row = ui.number(
-                        value=12,
-                        min=1,
-                        step=1,
-                        on_change=lambda e: process_text(),
-                    ).classes('w-28').props('outlined dense')
-                    ui_refs['chars_per_row'] = chars_per_row
                     ui.button('Ladda ner SVG', on_click=download_bradgards_svg).props('outline color=primary')
                     ui.button('Ladda ner PNG', on_click=download_bradgards_png).props('outline color=primary')
 
@@ -1530,12 +1603,12 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             ui.button('Rensa', on_click=clear_all, icon='delete').props('outline color=grey')
         
         # Key generation section (uses currently selected cipher)
-        with ui.expansion('Generera Nyckel', icon='key').classes('w-full max-w-4xl mt-6 rp-card'):
+        with ui.expansion('Generera nyckel', icon='key').classes('w-full max-w-4xl mt-6 rp-card'):
             ui.label('Ladda ner en utskrivbar nyckel för valt chiffer').classes('text-lg font-semibold mb-2 rp-text')
 
             with ui.row().classes('items-center gap-3 flex-wrap mb-2'):
                 ui.button('Ladda ner nyckel (HTML)', on_click=download_key_html).props('outline color=primary')
-                ui.button('Ladda ner nyckel (PDF)', on_click=download_key_pdf).props('outline color=primary')
+                ui.button('Skriv ut / spara PDF', on_click=download_key_pdf).props('outline color=primary')
 
             with ui.row().classes('items-center gap-3 flex-wrap mb-2') as key_caesar_shift_row:
                 ui_refs['key_caesar_shift_row'] = key_caesar_shift_row
@@ -1570,6 +1643,20 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             ui.label('Referenstabell:').classes('text-lg font-semibold mb-2 rp-text')
             ref_content = ui.html(build_scout_reference_html()).classes('rp-text')
             ui_refs['ref_content'] = ref_content
+
+            ref_ascii_tip = ui.label(
+                'Tips: Om du är trött på att inte kunna koda alla tecken, prova ASCII-chiffer!!'
+            ).classes('mt-3 rp-title text-sm')
+            ref_ascii_tip.set_visibility(False)
+            ui_refs['ref_ascii_tip'] = ref_ascii_tip
+
+            ref_ascii_button = ui.button(
+                'Välj ASCII',
+                on_click=lambda: select_cipher('ascii'),
+                icon='code',
+            ).props('outline color=primary').classes('mt-2')
+            ref_ascii_button.set_visibility(False)
+            ui_refs['ref_ascii_button'] = ref_ascii_button
         
         # Footer
         ui.separator().classes('mt-8')
@@ -1582,6 +1669,15 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
                     </svg>
                     GitHub
+                </a>
+                <a class="github-link" href="https://scout.kylberg.org" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15 15 0 0 1 0 20"/>
+                        <path d="M12 2a15 15 0 0 0 0 20"/>
+                    </svg>
+                    scout.kylberg.org
                 </a>
                 <a class="github-link" href="https://github.com/kylberg/scout/blob/main/README.md" target="_blank" rel="noopener noreferrer">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
