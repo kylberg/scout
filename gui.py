@@ -43,8 +43,13 @@ if os.path.isdir(RESOURCES_DIR):
     app.add_static_files('/resources', RESOURCES_DIR)
 
 
-def load_resource_svg(filename: str, default: str = '') -> str:
-    """Load SVG markup so it can inherit theme colors as inline SVG."""
+def load_resource_svg(
+    filename: str,
+    default: str = '',
+    accent_color_css: str = 'var(--svg-accent-color, #ea9d34)',
+    neutral_color_css: str = 'currentColor',
+) -> str:
+    """Load SVG markup and map hardcoded colors to theme-aware CSS values."""
     svg_path = os.path.join(RESOURCES_DIR, filename)
     try:
         with open(svg_path, 'r', encoding='utf-8') as f:
@@ -55,38 +60,38 @@ def load_resource_svg(filename: str, default: str = '') -> str:
     # Map hardcoded accent blue first so #000 replacements cannot corrupt #0000ff.
     content = re.sub(
         r'fill\s*:\s*#(?:0000ff|00f)(?![0-9a-fA-F])',
-        'fill:var(--svg-accent-color, #ea9d34)',
+        f'fill:{accent_color_css}',
         content,
         flags=re.IGNORECASE,
     )
     content = re.sub(
         r'stroke\s*:\s*#(?:0000ff|00f)(?![0-9a-fA-F])',
-        'stroke:var(--svg-accent-color, #ea9d34)',
+        f'stroke:{accent_color_css}',
         content,
         flags=re.IGNORECASE,
     )
     content = re.sub(
         r'fill\s*=\s*"#(?:0000ff|00f)"',
-        'fill="var(--svg-accent-color, #ea9d34)"',
+        f'fill="{accent_color_css}"',
         content,
         flags=re.IGNORECASE,
     )
     content = re.sub(
         r'stroke\s*=\s*"#(?:0000ff|00f)"',
-        'stroke="var(--svg-accent-color, #ea9d34)"',
+        f'stroke="{accent_color_css}"',
         content,
         flags=re.IGNORECASE,
     )
 
     # Editors often write hardcoded black values; normalize those to currentColor.
-    content = re.sub(r'fill\s*:\s*#000000(?![0-9a-fA-F])', 'fill:currentColor', content, flags=re.IGNORECASE)
-    content = re.sub(r'fill\s*:\s*#000(?![0-9a-fA-F])', 'fill:currentColor', content, flags=re.IGNORECASE)
-    content = re.sub(r'stroke\s*:\s*#000000(?![0-9a-fA-F])', 'stroke:currentColor', content, flags=re.IGNORECASE)
-    content = re.sub(r'stroke\s*:\s*#000(?![0-9a-fA-F])', 'stroke:currentColor', content, flags=re.IGNORECASE)
-    content = re.sub(r'fill\s*=\s*"#000000"', 'fill="currentColor"', content, flags=re.IGNORECASE)
-    content = re.sub(r'fill\s*=\s*"#000"', 'fill="currentColor"', content, flags=re.IGNORECASE)
-    content = re.sub(r'stroke\s*=\s*"#000000"', 'stroke="currentColor"', content, flags=re.IGNORECASE)
-    content = re.sub(r'stroke\s*=\s*"#000"', 'stroke="currentColor"', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*:\s*#000000(?![0-9a-fA-F])', f'fill:{neutral_color_css}', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*:\s*#000(?![0-9a-fA-F])', f'fill:{neutral_color_css}', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*:\s*#000000(?![0-9a-fA-F])', f'stroke:{neutral_color_css}', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*:\s*#000(?![0-9a-fA-F])', f'stroke:{neutral_color_css}', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*=\s*"#000000"', f'fill="{neutral_color_css}"', content, flags=re.IGNORECASE)
+    content = re.sub(r'fill\s*=\s*"#000"', f'fill="{neutral_color_css}"', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*=\s*"#000000"', f'stroke="{neutral_color_css}"', content, flags=re.IGNORECASE)
+    content = re.sub(r'stroke\s*=\s*"#000"', f'stroke="{neutral_color_css}"', content, flags=re.IGNORECASE)
 
     # XML declarations are unnecessary when embedding SVG directly in HTML.
     if content.lstrip().startswith('<?xml'):
@@ -97,7 +102,11 @@ def load_resource_svg(filename: str, default: str = '') -> str:
 TITLE_ICON_SVG = load_resource_svg('title_icon.svg')
 KEY_PIGPEN_SVG = load_resource_svg('pigpen_key.svg')
 EX_PIGPEN_SVG = load_resource_svg('pigpen_example.svg')
-
+SEPARATOR_SVG = load_resource_svg(
+    'separator.svg',
+    accent_color_css='var(--svg-separator-color, var(--rp-highlight-high))',
+    neutral_color_css='var(--svg-separator-color, var(--rp-highlight-high))',
+)
 KEY_SCOUTSCOUT_SVG = load_resource_svg('scout-scout_key.svg')
 
 EX_BACON_SVG = load_resource_svg('bacon_example.svg')
@@ -436,6 +445,8 @@ def main_page():
         if bradgards_chars_row:
             bradgards_chars_row.set_visibility(cipher_id == 'bradgards')
 
+        update_selected_cipher_header()
+
         update_key_preview()
 
         update_mode_ui()
@@ -478,6 +489,22 @@ def main_page():
         if ref_ascii_button:
             ref_ascii_button.set_visibility(show_ascii_tip)
         process_text()
+
+    def update_selected_cipher_header():
+        """Update the active cipher label shown above input/output section."""
+        cipher_config = CIPHERS[selected_cipher['value']]
+        active_icon = ui_refs.get('active_cipher_icon')
+        active_name = ui_refs.get('active_cipher_name')
+        if active_icon:
+            active_icon.name = cipher_config['icon']
+        if active_name:
+            active_name.text = f"{cipher_config['name']}"
+
+    def build_separator_html():
+        """Build themed separator, preferring custom SVG asset."""
+        if SEPARATOR_SVG:
+            return f'<div class="custom-separator">{SEPARATOR_SVG}</div>'
+        return '<hr style="border:0;border-top:1px solid var(--rp-highlight-low);margin:0;" />'
 
     def build_scout_reference_html():
         """Build SCOUT-scout key reference with optional SVG asset."""
@@ -1211,8 +1238,20 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             color: var(--rp-foam) !important;
         }
 
+        .theme-mode-switch {
+            --q-primary: var(--rp-pine) !important;
+        }
+
+        .theme-mode-switch .q-toggle__inner {
+            color: var(--rp-highlight-high) !important;
+        }
+
         .theme-mode-switch .q-toggle__inner--truthy {
             color: var(--rp-pine) !important;
+        }
+
+        .theme-mode-switch .q-toggle__track {
+            background: currentColor !important;
         }
 
         .theme-mode-switch .q-toggle__inner--truthy .q-toggle__thumb:after {
@@ -1222,6 +1261,16 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
         .theme-mode-switch .q-toggle__inner--truthy .q-toggle__track {
             color: var(--rp-pine) !important;
             opacity: 0.4 !important;
+        }
+
+        .theme-mode-switch .q-toggle__inner--falsy .q-toggle__track {
+            color: var(--rp-muted) !important;
+            opacity: 0.35 !important;
+        }
+
+        .theme-mode-switch .q-toggle__inner .q-focus-helper {
+            background: transparent !important;
+            opacity: 0 !important;
         }
         
         .q-slider__track {
@@ -1426,6 +1475,32 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             margin: 0 auto;
             color: var(--rp-text);
         }
+
+        .custom-separator {
+            width: 100%;
+            color: var(--rp-muted);
+            --svg-separator-color: var(--rp-highlight-high);
+            opacity: 0.75;
+        }
+
+        body.dark .custom-separator {
+            --svg-separator-color: var(--rp-highlight-med);
+        }
+
+        @supports (color: color-mix(in oklab, black, white)) {
+            .custom-separator {
+                --svg-separator-color: color-mix(in oklab, currentColor 52%, var(--rp-base) 48%);
+            }
+        }
+
+        .custom-separator svg {
+            display: block;
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            margin: 0 auto;
+            color: inherit;
+        }
     </style>
     <script>
         // Dark mode is always default on load.
@@ -1455,7 +1530,7 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                     sun_icon.classes(add='active')
                     moon_icon.classes(remove='active')
 
-            theme_switch = ui.switch(value=True, on_change=on_theme_change).classes('theme-mode-switch').props('dense color=primary')
+            theme_switch = ui.switch(value=True, on_change=on_theme_change).classes('theme-mode-switch').props('dense')
             moon_icon = ui.icon('dark_mode').classes('theme-icon active')
             ui.label('Theme').classes('theme-label')
         
@@ -1486,6 +1561,15 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                     
                     # Click handler with closure
                     card.on('click', lambda e, cid=cipher_id: select_cipher(cid))
+
+        ui.html(build_separator_html()).classes('w-full max-w-4xl mb-4')
+
+        # Active cipher status row
+        with ui.row().classes('items-center gap-2 w-full max-w-4xl mb-3'):
+            active_cipher_icon = ui.icon(CIPHERS['scout']['icon']).classes('text-lg rp-title')
+            ui_refs['active_cipher_icon'] = active_cipher_icon
+            active_cipher_name = ui.label(f"{CIPHERS['scout']['name']}").classes('text-lg font-semibold rp-text')
+            ui_refs['active_cipher_name'] = active_cipher_name
         
         # Caesar shift control (only visible when Caesar is selected)
         with ui.row().classes('items-center gap-4 mb-4') as shift_row:
@@ -1659,17 +1743,11 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
             ui_refs['ref_ascii_button'] = ref_ascii_button
         
         # Footer
-        ui.separator().classes('mt-8')
+        ui.html(build_separator_html()).classes('w-full max-w-4xl mt-8')
         ui.label('ChifferSkiftaren - Gjord för scouter och likasinnade, av Gustaf Kylberg').classes('rp-muted text-sm mt-2')
         ui.label(f'Version {APP_VERSION}').classes('rp-muted text-xs')
         ui.html('''
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-                <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-                    </svg>
-                    GitHub
-                </a>
                 <a class="github-link" href="https://scout.kylberg.org" target="_blank" rel="noopener noreferrer">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
@@ -1678,6 +1756,12 @@ Exempel: "SCOUT" med {shift_sign}{shift} → "{example}"
                         <path d="M12 2a15 15 0 0 0 0 20"/>
                     </svg>
                     scout.kylberg.org
+                </a>
+                <a class="github-link" href="https://github.com/kylberg/scout" target="_blank" rel="noopener noreferrer">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 012.01-.27c.68 0 1.36.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    GitHub
                 </a>
                 <a class="github-link" href="https://github.com/kylberg/scout/blob/main/README.md" target="_blank" rel="noopener noreferrer">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
